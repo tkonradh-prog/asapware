@@ -9,7 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 -- ==========================================
--- KONFIGURACJA ASAPWARE 14.0 (ACS FIX)
+-- KONFIGURACJA ASAPWARE 15.0 (LUCID UI)
 -- ==========================================
 local config = {
     esp_enabled = true,
@@ -32,7 +32,7 @@ local config = {
     },
     sliders = {
         esp_distance = 3000,
-        esp_hue = 220, 
+        esp_hue = 240, 
         boxThickness = 1,
         
         aim_distance = 1500,
@@ -80,7 +80,6 @@ local function AnalyzePlayerHealth(player, char)
     end
 
     local currentHP_Func = nil
-
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum and hum.MaxHealth > 1 then
         currentHP_Func = function() return hum.Health, hum.MaxHealth end
@@ -128,35 +127,36 @@ local function GetHP(player)
 end
 
 -- ==========================================
--- NOWOCZESNY SILNIK UI (ROBLOX GUI API)
+-- SILNIK UI "LUCID" (PRZEJRZYSTY DESIGN)
 -- ==========================================
 local UI_THEME = {
-    MainBG = Color3.fromRGB(18, 18, 24),
-    SidebarBG = Color3.fromRGB(12, 12, 16),
-    Accent = Color3.fromRGB(114, 137, 218),
-    ElementBG = Color3.fromRGB(28, 28, 36),
-    TextWhite = Color3.fromRGB(240, 240, 240),
-    TextGray = Color3.fromRGB(160, 160, 175),
-    Border = Color3.fromRGB(40, 40, 50)
+    MainBG = Color3.fromRGB(12, 12, 17),       -- Bardzo ciemny granat
+    SidebarBG = Color3.fromRGB(8, 8, 11),      -- Niemal czarny dla kontrastu
+    CardBG = Color3.fromRGB(18, 18, 25),       -- Tło sekcji (Karty)
+    Accent = Color3.fromRGB(130, 110, 255),    -- Fioletowo-Niebieski "Premium"
+    ElementBG = Color3.fromRGB(28, 28, 38),    -- Tło przycisków/suwaków
+    TextWhite = Color3.fromRGB(245, 245, 250),
+    TextGray = Color3.fromRGB(150, 150, 165),
+    Border = Color3.fromRGB(35, 35, 48)
 }
 
 local TargetGui = (gethui and gethui()) or CoreGui:FindFirstChild("RobloxGui") or CoreGui
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AsapwareApex"
+ScreenGui.Name = "AsapwareLucid"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetGui
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 720, 0, 520)
-MainFrame.Position = UDim2.new(0.5, -360, 0.5, -260)
+-- Główne Okno
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 780, 0, 540)
+MainFrame.Position = UDim2.new(0.5, -390, 0.5, -270)
 MainFrame.BackgroundColor3 = UI_THEME.MainBG
 MainFrame.BorderSizePixel = 0
-MainFrame.Parent = ScreenGui
-
-local MainCorner = Instance.new("UICorner", MainFrame); MainCorner.CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local MainStroke = Instance.new("UIStroke", MainFrame); MainStroke.Color = UI_THEME.Border; MainStroke.Thickness = 1
 
+-- Dragging
 local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = MainFrame.Position end
@@ -174,122 +174,139 @@ UserInputService.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
 end)
 
+-- Sidebar
 local Sidebar = Instance.new("Frame", MainFrame)
-Sidebar.Size = UDim2.new(0, 180, 1, 0)
+Sidebar.Size = UDim2.new(0, 190, 1, 0)
 Sidebar.BackgroundColor3 = UI_THEME.SidebarBG
 Sidebar.BorderSizePixel = 0
-local SidebarCorner = Instance.new("UICorner", Sidebar); SidebarCorner.CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 8)
+
 local SidebarHider = Instance.new("Frame", Sidebar)
-SidebarHider.Size = UDim2.new(0, 10, 1, 0); SidebarHider.Position = UDim2.new(1, -10, 0, 0); SidebarHider.BackgroundColor3 = UI_THEME.SidebarBG; SidebarHider.BorderSizePixel = 0
+SidebarHider.Size = UDim2.new(0, 10, 1, 0); SidebarHider.Position = UDim2.new(1, -10, 0, 0)
+SidebarHider.BackgroundColor3 = UI_THEME.SidebarBG; SidebarHider.BorderSizePixel = 0
+
+local TitleLine = Instance.new("Frame", Sidebar)
+TitleLine.Size = UDim2.new(1, 0, 0, 2); TitleLine.BackgroundColor3 = UI_THEME.Accent; TitleLine.BorderSizePixel = 0
+Instance.new("UICorner", TitleLine).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel", Sidebar)
-Title.Size = UDim2.new(1, 0, 0, 60); Title.BackgroundTransparency = 1
-Title.Text = "ASAPWARE"; Title.TextColor3 = UI_THEME.TextWhite; Title.Font = Enum.Font.GothamBold; Title.TextSize = 20
+Title.Size = UDim2.new(1, 0, 0, 70); Title.BackgroundTransparency = 1
+Title.Text = "ASAPWARE"; Title.TextColor3 = UI_THEME.TextWhite
+Title.Font = Enum.Font.GothamBold; Title.TextSize = 22; Title.Position = UDim2.new(0, 0, 0, 5)
 
+-- Obszar Zakładek
 local TabContainer = Instance.new("Frame", MainFrame)
-TabContainer.Size = UDim2.new(1, -190, 1, -20); TabContainer.Position = UDim2.new(0, 190, 0, 10)
+TabContainer.Size = UDim2.new(1, -210, 1, -20); TabContainer.Position = UDim2.new(0, 200, 0, 10)
 TabContainer.BackgroundTransparency = 1
 
 local tabs = {}
 local function CreateTabButton(name, icon, yPos, isFirst)
     local btn = Instance.new("TextButton", Sidebar)
-    btn.Size = UDim2.new(1, 0, 0, 40); btn.Position = UDim2.new(0, 0, 0, yPos)
-    btn.BackgroundTransparency = 1; btn.Text = "   " .. icon .. "   " .. name
-    btn.TextColor3 = isFirst and UI_THEME.TextWhite or UI_THEME.TextGray
-    btn.Font = Enum.Font.GothamMedium; btn.TextSize = 15; btn.TextXAlignment = Enum.TextXAlignment.Left
+    btn.Size = UDim2.new(1, -20, 0, 42); btn.Position = UDim2.new(0, 10, 0, yPos)
+    btn.BackgroundColor3 = UI_THEME.ElementBG; btn.BackgroundTransparency = isFirst and 0 or 1
+    btn.Text = "   " .. icon .. "  " .. name; btn.TextColor3 = isFirst and UI_THEME.TextWhite or UI_THEME.TextGray
+    btn.Font = Enum.Font.GothamMedium; btn.TextSize = 14; btn.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
     
-    local accent = Instance.new("Frame", btn)
-    accent.Size = UDim2.new(0, 3, 0.6, 0); accent.Position = UDim2.new(0, 0, 0.2, 0)
-    accent.BackgroundColor3 = UI_THEME.Accent; accent.BorderSizePixel = 0; accent.Visible = isFirst
+    local page = Instance.new("Frame", TabContainer)
+    page.Size = UDim2.new(1, 0, 1, 0); page.BackgroundTransparency = 1; page.Visible = isFirst
     
-    local page = Instance.new("ScrollingFrame", TabContainer)
-    page.Size = UDim2.new(1, 0, 1, 0); page.BackgroundTransparency = 1; page.ScrollBarThickness = 2
-    page.Visible = isFirst
+    -- Prawdziwy układ dwukolumnowy
+    local colLeft = Instance.new("ScrollingFrame", page)
+    colLeft.Size = UDim2.new(0.49, 0, 1, 0); colLeft.BackgroundTransparency = 1; colLeft.ScrollBarThickness = 0
+    local layL = Instance.new("UIListLayout", colLeft); layL.Padding = UDim.new(0, 12); layL.SortOrder = Enum.SortOrder.LayoutOrder
     
-    local layout = Instance.new("UIListLayout", page)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder; layout.Padding = UDim.new(0, 10)
-    
+    local colRight = Instance.new("ScrollingFrame", page)
+    colRight.Size = UDim2.new(0.49, 0, 1, 0); colRight.Position = UDim2.new(0.51, 0, 0, 0); colRight.BackgroundTransparency = 1; colRight.ScrollBarThickness = 0
+    local layR = Instance.new("UIListLayout", colRight); layR.Padding = UDim.new(0, 12); layR.SortOrder = Enum.SortOrder.LayoutOrder
+
     btn.MouseButton1Click:Connect(function()
-        for _, t in pairs(tabs) do t.Btn.TextColor3 = UI_THEME.TextGray; t.Accent.Visible = false; t.Page.Visible = false end
-        btn.TextColor3 = UI_THEME.TextWhite; accent.Visible = true; page.Visible = true
+        for _, t in pairs(tabs) do 
+            TweenService:Create(t.Btn, TweenInfo.new(0.2), {BackgroundTransparency = 1, TextColor3 = UI_THEME.TextGray}):Play()
+            t.Page.Visible = false 
+        end
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0, TextColor3 = UI_THEME.TextWhite}):Play()
+        page.Visible = true
     end)
     
-    tabs[name] = {Btn = btn, Accent = accent, Page = page}
-    return page
+    tabs[name] = {Btn = btn, Page = page, Col1 = colLeft, Col2 = colRight, L1 = layL, L2 = layR}
+    return tabs[name]
 end
 
-local function CreateSection(page, title)
-    local sec = Instance.new("Frame", page)
-    sec.Size = UDim2.new(1, -10, 0, 0); sec.BackgroundTransparency = 1
-    local layout = Instance.new("UIListLayout", sec); layout.SortOrder = Enum.SortOrder.LayoutOrder; layout.Padding = UDim.new(0, 8)
+local function CreateCard(tabData, columnIdx, title)
+    local targetCol = columnIdx == 1 and tabData.Col1 or tabData.Col2
+    local targetLay = columnIdx == 1 and tabData.L1 or tabData.L2
     
-    local lbl = Instance.new("TextLabel", sec)
-    lbl.Size = UDim2.new(1, 0, 0, 25); lbl.BackgroundTransparency = 1
-    lbl.Text = title; lbl.TextColor3 = UI_THEME.Accent; lbl.Font = Enum.Font.GothamBold; lbl.TextSize = 13; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local card = Instance.new("Frame", targetCol)
+    card.BackgroundColor3 = UI_THEME.CardBG; card.BorderSizePixel = 0
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    local str = Instance.new("UIStroke", card); str.Color = UI_THEME.Border; str.Thickness = 1
     
-    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() sec.Size = UDim2.new(1, -10, 0, layout.AbsoluteContentSize.Y) end)
-    return sec
+    local lay = Instance.new("UIListLayout", card); lay.Padding = UDim.new(0, 6); lay.SortOrder = Enum.SortOrder.LayoutOrder; lay.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    
+    local header = Instance.new("TextLabel", card)
+    header.Size = UDim2.new(1, -20, 0, 30); header.BackgroundTransparency = 1
+    header.Text = title; header.TextColor3 = UI_THEME.Accent; header.Font = Enum.Font.GothamBold; header.TextSize = 12; header.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local div = Instance.new("Frame", card); div.Size = UDim2.new(1, 0, 0, 1); div.BackgroundColor3 = UI_THEME.Border; div.BorderSizePixel = 0
+    
+    local content = Instance.new("Frame", card)
+    content.Size = UDim2.new(1, -20, 0, 0); content.BackgroundTransparency = 1
+    local contLay = Instance.new("UIListLayout", content); contLay.Padding = UDim.new(0, 8); contLay.SortOrder = Enum.SortOrder.LayoutOrder
+    
+    -- Auto Resize logic
+    local function resize()
+        content.Size = UDim2.new(1, -20, 0, contLay.AbsoluteContentSize.Y)
+        card.Size = UDim2.new(1, 0, 0, lay.AbsoluteContentSize.Y + 10)
+        targetCol.CanvasSize = UDim2.new(0, 0, 0, targetLay.AbsoluteContentSize.Y + 20)
+    end
+    contLay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(resize)
+    
+    return content
 end
 
 local function CreateToggle(parent, text, tbl, key)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, 0, 0, 30); frame.BackgroundTransparency = 1
+    local frame = Instance.new("Frame", parent); frame.Size = UDim2.new(1, 0, 0, 26); frame.BackgroundTransparency = 1
     
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(1, -50, 1, 0); lbl.BackgroundTransparency = 1
-    lbl.Text = text; lbl.TextColor3 = UI_THEME.TextWhite; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 14; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local lbl = Instance.new("TextLabel", frame); lbl.Size = UDim2.new(1, -45, 1, 0); lbl.BackgroundTransparency = 1
+    lbl.Text = text; lbl.TextColor3 = UI_THEME.TextWhite; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 13; lbl.TextXAlignment = Enum.TextXAlignment.Left
     
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0, 40, 0, 20); btn.Position = UDim2.new(1, -40, 0.5, -10)
-    btn.BackgroundColor3 = tbl[key] and UI_THEME.Accent or UI_THEME.ElementBG; btn.Text = ""
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+    local bg = Instance.new("TextButton", frame); bg.Size = UDim2.new(0, 36, 0, 18); bg.Position = UDim2.new(1, -36, 0.5, -9)
+    bg.BackgroundColor3 = tbl[key] and UI_THEME.Accent or UI_THEME.ElementBG; bg.Text = ""; bg.AutoButtonColor = false
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
     
-    local knob = Instance.new("Frame", btn)
-    knob.Size = UDim2.new(0, 16, 0, 16); knob.Position = tbl[key] and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    local knob = Instance.new("Frame", bg); knob.Size = UDim2.new(0, 14, 0, 14); knob.Position = tbl[key] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255); Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
     
-    btn.MouseButton1Click:Connect(function()
+    bg.MouseButton1Click:Connect(function()
         tbl[key] = not tbl[key]
-        local info = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        TweenService:Create(btn, info, {BackgroundColor3 = tbl[key] and UI_THEME.Accent or UI_THEME.ElementBG}):Play()
-        TweenService:Create(knob, info, {Position = tbl[key] and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}):Play()
+        TweenService:Create(bg, TweenInfo.new(0.2), {BackgroundColor3 = tbl[key] and UI_THEME.Accent or UI_THEME.ElementBG}):Play()
+        TweenService:Create(knob, TweenInfo.new(0.2), {Position = tbl[key] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)}):Play()
     end)
 end
 
-local function CreateSlider(parent, text, tbl, key, min, max, isColor)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, 0, 0, 45); frame.BackgroundTransparency = 1
+local function CreateSlider(parent, text, tbl, key, min, max)
+    local frame = Instance.new("Frame", parent); frame.Size = UDim2.new(1, 0, 0, 40); frame.BackgroundTransparency = 1
     
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(1, 0, 0, 20); lbl.BackgroundTransparency = 1
-    lbl.Text = text; lbl.TextColor3 = UI_THEME.TextWhite; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 14; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local lbl = Instance.new("TextLabel", frame); lbl.Size = UDim2.new(1, 0, 0, 18); lbl.BackgroundTransparency = 1
+    lbl.Text = text; lbl.TextColor3 = UI_THEME.TextWhite; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 13; lbl.TextXAlignment = Enum.TextXAlignment.Left
     
-    local valLbl = Instance.new("TextLabel", frame)
-    valLbl.Size = UDim2.new(1, 0, 0, 20); valLbl.BackgroundTransparency = 1
-    valLbl.Text = tostring(tbl[key]); valLbl.TextColor3 = UI_THEME.TextGray; valLbl.Font = Enum.Font.GothamMedium; valLbl.TextSize = 14; valLbl.TextXAlignment = Enum.TextXAlignment.Right
+    local valLbl = Instance.new("TextLabel", frame); valLbl.Size = UDim2.new(1, 0, 0, 18); valLbl.BackgroundTransparency = 1
+    valLbl.Text = tostring(tbl[key]); valLbl.TextColor3 = UI_THEME.Accent; valLbl.Font = Enum.Font.GothamBold; valLbl.TextSize = 13; valLbl.TextXAlignment = Enum.TextXAlignment.Right
     
-    local bg = Instance.new("TextButton", frame)
-    bg.Size = UDim2.new(1, 0, 0, 6); bg.Position = UDim2.new(0, 0, 0, 30); bg.BackgroundColor3 = UI_THEME.ElementBG; bg.Text = ""; bg.AutoButtonColor = false
-    Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
+    local bg = Instance.new("TextButton", frame); bg.Size = UDim2.new(1, 0, 0, 6); bg.Position = UDim2.new(0, 0, 0, 26)
+    bg.BackgroundColor3 = UI_THEME.ElementBG; bg.Text = ""; bg.AutoButtonColor = false; Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
     
-    local fill = Instance.new("Frame", bg)
-    local pct = (tbl[key] - min) / (max - min)
-    fill.Size = UDim2.new(pct, 0, 1, 0); fill.BackgroundColor3 = isColor and Color3.fromHSV(tbl[key]/360, 1, 1) or UI_THEME.Accent; fill.BorderSizePixel = 0
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+    local fill = Instance.new("Frame", bg); local pct = (tbl[key] - min) / (max - min)
+    fill.Size = UDim2.new(pct, 0, 1, 0); fill.BackgroundColor3 = UI_THEME.Accent; Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
     
     local isDragging = false
     local function update(input)
         local pos = math.clamp((input.Position.X - bg.AbsolutePosition.X) / bg.AbsoluteSize.X, 0, 1)
         local newVal = math.floor(min + ((max - min) * pos))
-        tbl[key] = newVal
-        valLbl.Text = tostring(newVal)
+        tbl[key] = newVal; valLbl.Text = tostring(newVal)
         TweenService:Create(fill, TweenInfo.new(0.05), {Size = UDim2.new(pos, 0, 1, 0)}):Play()
-        if isColor then
-            local c = Color3.fromHSV(newVal/360, 1, 1)
-            fill.BackgroundColor3 = c
-            ESP_COLORS.Enemy = c
-        end
+        if key == "esp_hue" then ESP_COLORS.Enemy = Color3.fromHSV(newVal/360, 1, 1) end
     end
     bg.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = true; update(i) end end)
     UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then isDragging = false end end)
@@ -297,123 +314,91 @@ local function CreateSlider(parent, text, tbl, key, min, max, isColor)
 end
 
 local function CreateSelector(parent, text, tbl, key, options)
-    local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, 0, 0, 30); frame.BackgroundTransparency = 1
+    local frame = Instance.new("Frame", parent); frame.Size = UDim2.new(1, 0, 0, 30); frame.BackgroundTransparency = 1
     
-    local lbl = Instance.new("TextLabel", frame)
-    lbl.Size = UDim2.new(0.5, 0, 1, 0); lbl.BackgroundTransparency = 1
-    lbl.Text = text; lbl.TextColor3 = UI_THEME.TextWhite; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 14; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local lbl = Instance.new("TextLabel", frame); lbl.Size = UDim2.new(0.5, 0, 1, 0); lbl.BackgroundTransparency = 1
+    lbl.Text = text; lbl.TextColor3 = UI_THEME.TextWhite; lbl.Font = Enum.Font.GothamMedium; lbl.TextSize = 13; lbl.TextXAlignment = Enum.TextXAlignment.Left
     
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0.5, 0, 0, 24); btn.Position = UDim2.new(0.5, 0, 0.5, -12)
-    btn.BackgroundColor3 = UI_THEME.ElementBG; btn.Text = options[tbl[key]]; btn.TextColor3 = UI_THEME.Accent; btn.Font = Enum.Font.GothamMedium; btn.TextSize = 13
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+    local btn = Instance.new("TextButton", frame); btn.Size = UDim2.new(0.5, 0, 0, 24); btn.Position = UDim2.new(0.5, 0, 0.5, -12)
+    btn.BackgroundColor3 = UI_THEME.ElementBG; btn.Text = options[tbl[key]]; btn.TextColor3 = UI_THEME.TextGray; btn.Font = Enum.Font.GothamMedium; btn.TextSize = 12
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4); Instance.new("UIStroke", btn).Color = UI_THEME.Border
     
     btn.MouseButton1Click:Connect(function()
-        tbl[key] = tbl[key] + 1
-        if tbl[key] > #options then tbl[key] = 1 end
+        tbl[key] = tbl[key] + 1; if tbl[key] > #options then tbl[key] = 1 end
         btn.Text = options[tbl[key]]
     end)
 end
 
 local function CreateButton(parent, text, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, 0, 0, 30); btn.BackgroundColor3 = UI_THEME.ElementBG
-    btn.Text = text; btn.TextColor3 = Color3.fromRGB(255, 80, 80); btn.Font = Enum.Font.GothamBold; btn.TextSize = 14
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    local btn = Instance.new("TextButton", parent); btn.Size = UDim2.new(1, 0, 0, 32); btn.BackgroundColor3 = UI_THEME.ElementBG
+    btn.Text = text; btn.TextColor3 = Color3.fromRGB(255, 80, 80); btn.Font = Enum.Font.GothamBold; btn.TextSize = 13
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6); Instance.new("UIStroke", btn).Color = UI_THEME.Border
     btn.MouseButton1Click:Connect(callback)
 end
 
--- Rysowanie Menu
-local pAimbot = CreateTabButton("Aimbot", "⚡", 70, true)
-local pVisuals = CreateTabButton("Visuals", "👁️", 110, false)
-local pConfig = CreateTabButton("Settings", "⚙️", 150, false)
+-- Budowa Menu
+local tAim = CreateTabButton("Legitbot", "🎯", 80, true)
+local tVis = CreateTabButton("Visuals", "👁️", 130, false)
+local tSet = CreateTabButton("Config", "⚙️", 180, false)
 
-local aMain = CreateSection(pAimbot, "COMBAT")
-CreateToggle(aMain, "Enable Aimbot", config.toggles, "aim_enabled")
-CreateToggle(aMain, "Draw FOV Circle", config.toggles, "aim_showFov")
-CreateToggle(aMain, "Draw Crosshair Dot", config.toggles, "aim_crosshair")
-CreateToggle(aMain, "Visibility Check", config.toggles, "aim_wallCheck")
-CreateToggle(aMain, "Velocity Prediction", config.toggles, "aim_predict")
+-- Aimbot Tab
+local aCard1 = CreateCard(tAim, 1, "COMBAT ASSIST")
+CreateToggle(aCard1, "Enable Aimbot", config.toggles, "aim_enabled")
+CreateToggle(aCard1, "Draw FOV Circle", config.toggles, "aim_showFov")
+CreateToggle(aCard1, "Draw Crosshair", config.toggles, "aim_crosshair")
+CreateToggle(aCard1, "Visibility Check", config.toggles, "aim_wallCheck")
+CreateToggle(aCard1, "Velocity Prediction", config.toggles, "aim_predict")
 
-local aSettings = CreateSection(pAimbot, "ADJUSTMENTS")
-CreateSelector(aSettings, "Target Part", config.selectors, "aim_part", {"Head", "Torso", "Root"})
-CreateSelector(aSettings, "Aimbot Method", config.selectors, "aim_method", {"Mouse", "Camera (ACS/FPS)"})
-CreateSlider(aSettings, "Max Distance (m)", config.sliders, "aim_distance", 50, 5000)
-CreateSlider(aSettings, "FOV Radius", config.sliders, "aim_fov", 10, 800)
-CreateSlider(aSettings, "Smoothness", config.sliders, "aim_smooth", 1, 20)
-CreateSlider(aSettings, "Prediction Strength", config.sliders, "aim_pred_amt", 1, 20)
-CreateSlider(aSettings, "Aim Offset X", config.sliders, "aim_offsetX", -100, 100)
-CreateSlider(aSettings, "Aim Offset Y", config.sliders, "aim_offsetY", -100, 100)
+local aCard2 = CreateCard(tAim, 2, "PROPERTIES")
+CreateSelector(aCard2, "Target Part", config.selectors, "aim_part", {"Head", "Torso", "Root"})
+CreateSelector(aCard2, "Aim Method", config.selectors, "aim_method", {"Mouse", "Camera (ACS)"})
+CreateSlider(aCard2, "Max Distance (m)", config.sliders, "aim_distance", 50, 5000)
+CreateSlider(aCard2, "FOV Radius", config.sliders, "aim_fov", 10, 800)
+CreateSlider(aCard2, "Smoothness", config.sliders, "aim_smooth", 1, 20)
+CreateSlider(aCard2, "Predict Strength", config.sliders, "aim_pred_amt", 1, 20)
 
-local vMain = CreateSection(pVisuals, "ESP OVERLAY")
-CreateToggle(vMain, "Enable ESP", config, "esp_enabled")
-CreateToggle(vMain, "Draw Boxes", config.toggles, "boxes")
-CreateToggle(vMain, "Health Bars", config.toggles, "healthbars")
-CreateToggle(vMain, "Health Text", config.toggles, "healthtext")
-CreateToggle(vMain, "Draw Skeletons", config.toggles, "skeletons")
+local aCard3 = CreateCard(tAim, 1, "OFFSETS")
+CreateSlider(aCard3, "Aim Offset X", config.sliders, "aim_offsetX", -100, 100)
+CreateSlider(aCard3, "Aim Offset Y", config.sliders, "aim_offsetY", -100, 100)
 
-local vInfo = CreateSection(pVisuals, "INFORMATION")
-CreateToggle(vInfo, "Show Names", config.toggles, "names")
-CreateToggle(vInfo, "Show Weapons", config.toggles, "weapons")
-CreateToggle(vInfo, "Show Distances", config.toggles, "distances")
-CreateToggle(vInfo, "Show Tracers", config.toggles, "tracers")
-CreateSelector(vInfo, "Tracer Origin", config.selectors, "tracer_origin", {"Bottom", "Center", "Mouse"})
+-- Visuals Tab
+local vCard1 = CreateCard(tVis, 1, "ESP MAIN")
+CreateToggle(vCard1, "Master Switch", config, "esp_enabled")
+CreateToggle(vCard1, "Bounding Boxes", config.toggles, "boxes")
+CreateToggle(vCard1, "Health Bars", config.toggles, "healthbars")
+CreateToggle(vCard1, "Health Text", config.toggles, "healthtext")
+CreateToggle(vCard1, "Draw Skeletons", config.toggles, "skeletons")
 
-local vSet = CreateSection(pVisuals, "PROPERTIES")
-CreateSlider(vSet, "Render Distance", config.sliders, "esp_distance", 50, 5000)
-CreateSlider(vSet, "Enemy Color (HUE)", config.sliders, "esp_hue", 0, 360, true)
+local vCard2 = CreateCard(tVis, 2, "INFORMATION")
+CreateToggle(vCard2, "Show Names", config.toggles, "names")
+CreateToggle(vCard2, "Show Weapons", config.toggles, "weapons")
+CreateToggle(vCard2, "Show Distances", config.toggles, "distances")
+CreateToggle(vCard2, "Show Tracers", config.toggles, "tracers")
+CreateSelector(vCard2, "Tracer Origin", config.selectors, "tracer_origin", {"Bottom", "Center", "Mouse"})
 
-local cSet = CreateSection(pConfig, "PREFERENCES")
-CreateToggle(cSet, "Team Check", config, "teamCheck")
-CreateButton(cSet, "UNLOAD ASAPWARE", function() if _G.AsapwareUnload then _G.AsapwareUnload() end end)
+local vCard3 = CreateCard(tVis, 1, "APPEARANCE")
+CreateSlider(vCard3, "Render Distance", config.sliders, "esp_distance", 50, 5000)
+CreateSlider(vCard3, "Enemy Color (HUE)", config.sliders, "esp_hue", 0, 360)
+
+-- Config Tab
+local cCard1 = CreateCard(tSet, 1, "SYSTEM")
+CreateToggle(cCard1, "Team Check", config, "teamCheck")
+CreateButton(cCard1, "UNLOAD ASAPWARE", function() if _G.AsapwareUnload then _G.AsapwareUnload() end end)
 
 UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode == Enum.KeyCode.Insert then ScreenGui.Enabled = not ScreenGui.Enabled end
     if input.KeyCode == Enum.KeyCode.Delete then if _G.AsapwareUnload then _G.AsapwareUnload() end end
 end)
 
--- ==========================================
--- SKELETON ESP LOGIC
--- ==========================================
-local function GetBones(char)
-    local bones = {}
-    if char:FindFirstChild("UpperTorso") then
-        local pairs = {
-            {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-            {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
-            {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
-            {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
-            {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
-        }
-        for _, p in ipairs(pairs) do
-            local p1, p2 = char:FindFirstChild(p[1]), char:FindFirstChild(p[2])
-            if p1 and p2 then table.insert(bones, {p1, p2}) end
-        end
-    elseif char:FindFirstChild("Torso") then
-        local pairs = {
-            {"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"},
-            {"Torso", "Left Leg"}, {"Torso", "Right Leg"}
-        }
-        for _, p in ipairs(pairs) do
-            local p1, p2 = char:FindFirstChild(p[1]), char:FindFirstChild(p[2])
-            if p1 and p2 then table.insert(bones, {p1, p2}) end
-        end
-    end
-    return bones
-end
 
 -- ==========================================
--- LOGIKA RYSOWANIA (DRAWING API)
+-- LOGIKA RYSOWANIA (DRAWING API) I ESP
 -- ==========================================
 local ESP_Data = {}
 local AllDrawings = {}
-
 local function CreateDraw(Type, Properties)
-    local obj = Drawing.new(Type)
-    for k, v in pairs(Properties) do obj[k] = v end
-    table.insert(AllDrawings, obj)
-    return obj
+    local obj = Drawing.new(Type); for k, v in pairs(Properties) do obj[k] = v end
+    table.insert(AllDrawings, obj); return obj
 end
 
 local FOV_Circle = CreateDraw("Circle", {Thickness = 1, Color = Color3.fromRGB(255, 255, 255), Filled = false})
@@ -421,7 +406,7 @@ local CrosshairDot = CreateDraw("Circle", {Thickness = 1, Radius = 3, Color = UI
 
 local function SetupESP(player)
     if ESP_Data[player] then return end
-    local data = {
+    ESP_Data[player] = {
         BoxOutline = CreateDraw("Square", {Filled = false, Color = ESP_COLORS.Outline}),
         Box = CreateDraw("Square", {Filled = false}),
         HealthOutline = CreateDraw("Square", {Filled = true, Color = ESP_COLORS.Outline}),
@@ -433,8 +418,6 @@ local function SetupESP(player)
         Tracer = CreateDraw("Line", {Thickness = 1, Transparency = 0.5, Color = ESP_COLORS.Tracer}),
         SkeletonLines = {} 
     }
-    ESP_Data[player] = data
-    
     player.CharacterAdded:Connect(function(char) task.spawn(function() AnalyzePlayerHealth(player, char) end) end)
     if player.Character then task.spawn(function() AnalyzePlayerHealth(player, player.Character) end) end
 end
@@ -442,16 +425,13 @@ end
 local function RemoveESP(player)
     HealthCache[player] = nil
     if ESP_Data[player] then
-        for k, v in pairs(ESP_Data[player]) do 
-            if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end else v:Remove() end 
-        end
+        for k, v in pairs(ESP_Data[player]) do if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end else v:Remove() end end
         ESP_Data[player] = nil
     end
 end
 
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then SetupESP(p) end end
-Players.PlayerAdded:Connect(SetupESP)
-Players.PlayerRemoving:Connect(RemoveESP)
+Players.PlayerAdded:Connect(SetupESP); Players.PlayerRemoving:Connect(RemoveESP)
 
 local function GetAimPart(char)
     local sel = config.selectors.aim_part
@@ -465,10 +445,21 @@ local function IsVisible(targetPart)
     return not result or result.Instance:IsDescendantOf(targetPart.Parent)
 end
 
+local function GetBones(char)
+    local bones = {}
+    if char:FindFirstChild("UpperTorso") then
+        local pairs = { {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"}, {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"}, {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"}, {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"}, {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"} }
+        for _, p in ipairs(pairs) do local p1, p2 = char:FindFirstChild(p[1]), char:FindFirstChild(p[2]); if p1 and p2 then table.insert(bones, {p1, p2}) end end
+    elseif char:FindFirstChild("Torso") then
+        local pairs = { {"Head", "Torso"}, {"Torso", "Left Arm"}, {"Torso", "Right Arm"}, {"Torso", "Left Leg"}, {"Torso", "Right Leg"} }
+        for _, p in ipairs(pairs) do local p1, p2 = char:FindFirstChild(p[1]), char:FindFirstChild(p[2]); if p1 and p2 then table.insert(bones, {p1, p2}) end end
+    end
+    return bones
+end
+
 -- ==========================================
--- GŁÓWNA PĘTLA RENDEROWANIA (ACS OVERRIDE)
+-- GŁÓWNA PĘTLA (PRIORITY 2000 - ACS BYPASS)
 -- ==========================================
--- Używamy BindToRenderStep na Priority 2000, aby celownik ustawiał się PO obliczeniach recoilu ACS.
 RunService:BindToRenderStep("AsapwareMain", 2000, function()
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
     local mouseLoc = UserInputService:GetMouseLocation()
@@ -476,11 +467,9 @@ RunService:BindToRenderStep("AsapwareMain", 2000, function()
     FOV_Circle.Position = mouseLoc; FOV_Circle.Radius = config.sliders.aim_fov; FOV_Circle.Visible = config.toggles.aim_showFov and config.toggles.aim_enabled
     CrosshairDot.Position = mouseLoc; CrosshairDot.Visible = config.toggles.aim_crosshair and config.toggles.aim_enabled
 
-    -- BYPASS ACS INPUT SINKING: Używamy IsMouseButtonPressed zamiast eventów InputBegan
     local isAiming = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
-
-    -- AIMBOT LOGIC
     local closestTarget = nil; local shortestDist = math.huge
+
     if config.toggles.aim_enabled and isAiming then
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and (not config.teamCheck or player.Team ~= LocalPlayer.Team) then
@@ -489,11 +478,7 @@ RunService:BindToRenderStep("AsapwareMain", 2000, function()
                     local aimPart = GetAimPart(player.Character)
                     if aimPart and (Camera.CFrame.Position - aimPart.Position).Magnitude <= config.sliders.aim_distance then
                         local targetPos = aimPart.Position
-                        
-                        -- PREDYKCJA RUCHU
-                        if config.toggles.aim_predict and aimPart.AssemblyLinearVelocity then
-                            targetPos = targetPos + (aimPart.AssemblyLinearVelocity * (config.sliders.aim_pred_amt / 100))
-                        end
+                        if config.toggles.aim_predict and aimPart.AssemblyLinearVelocity then targetPos = targetPos + (aimPart.AssemblyLinearVelocity * (config.sliders.aim_pred_amt / 100)) end
 
                         local pos, onScreen = Camera:WorldToScreenPoint(targetPos)
                         if onScreen then
@@ -514,20 +499,14 @@ RunService:BindToRenderStep("AsapwareMain", 2000, function()
             local smooth = config.sliders.aim_smooth
             
             if config.selectors.aim_method == 1 then
-                -- MOUSE METHOD
-                if mousemoverel then
-                    mousemoverel(smooth <= 1 and diffX or diffX / smooth, smooth <= 1 and diffY or diffY / smooth)
-                else
-                    Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, closestTarget), smooth <= 1 and 1 or (1 / smooth))
-                end
+                if mousemoverel then mousemoverel(smooth <= 1 and diffX or diffX / smooth, smooth <= 1 and diffY or diffY / smooth)
+                else Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, closestTarget), smooth <= 1 and 1 or (1 / smooth)) end
             else
-                -- CAMERA METHOD (IDEALNE DLA ACS)
                 Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, closestTarget), smooth <= 1 and 1 or (1 / smooth))
             end
         end
     end
 
-    -- ESP LOGIC
     local t_Thick = config.sliders.boxThickness
     for player, esp in pairs(ESP_Data) do
         local isVisible = false
@@ -605,16 +584,13 @@ end)
 
 _G.AsapwareUnload = function()
     RunService:UnbindFromRenderStep("AsapwareMain")
-    ScreenGui:Destroy()
-    
+    if ScreenGui then ScreenGui:Destroy() end
     for _, esp in pairs(ESP_Data) do for k, v in pairs(esp) do if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end else v:Remove() end end end
     table.clear(ESP_Data); table.clear(HealthCache)
-
     for _, obj in ipairs(AllDrawings) do if obj.Remove then obj:Remove() end end
     table.clear(AllDrawings)
-    
     _G.AsapwareUnload = nil
-    print("ASAPWARE 14.0: Zniszczono pomyślnie.")
+    print("ASAPWARE 15.0: Zniszczono pomyślnie.")
 end
 
-print("ASAPWARE 14.0: Aktywne! | [INSERT] Menu | [DEL] Zniszcz Cheata | [PPM] Aimbot")
+print("ASAPWARE 15.0: Aktywne! | [INSERT] Menu | [DEL] Zniszcz Cheata")
