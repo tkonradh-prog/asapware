@@ -9,7 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
 -- ==========================================
--- KONFIGURACJA ASAPWARE 13.1 (HOTFIX)
+-- KONFIGURACJA ASAPWARE 14.0 (ACS FIX)
 -- ==========================================
 local config = {
     esp_enabled = true,
@@ -44,6 +44,7 @@ local config = {
     },
     selectors = {
         aim_part = 1, 
+        aim_method = 2, -- 1 = Mouse, 2 = Camera (IDEALNE DLA ACS)
         tracer_origin = 1 
     }
 }
@@ -147,8 +148,8 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = TargetGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 720, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -360, 0.5, -250)
+MainFrame.Size = UDim2.new(0, 720, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -360, 0.5, -260)
 MainFrame.BackgroundColor3 = UI_THEME.MainBG
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
@@ -337,15 +338,13 @@ CreateToggle(aMain, "Velocity Prediction", config.toggles, "aim_predict")
 
 local aSettings = CreateSection(pAimbot, "ADJUSTMENTS")
 CreateSelector(aSettings, "Target Part", config.selectors, "aim_part", {"Head", "Torso", "Root"})
+CreateSelector(aSettings, "Aimbot Method", config.selectors, "aim_method", {"Mouse", "Camera (ACS/FPS)"})
 CreateSlider(aSettings, "Max Distance (m)", config.sliders, "aim_distance", 50, 5000)
 CreateSlider(aSettings, "FOV Radius", config.sliders, "aim_fov", 10, 800)
 CreateSlider(aSettings, "Smoothness", config.sliders, "aim_smooth", 1, 20)
 CreateSlider(aSettings, "Prediction Strength", config.sliders, "aim_pred_amt", 1, 20)
-
--- PRZYWRÓCONY OFFSET!
 CreateSlider(aSettings, "Aim Offset X", config.sliders, "aim_offsetX", -100, 100)
 CreateSlider(aSettings, "Aim Offset Y", config.sliders, "aim_offsetY", -100, 100)
-
 
 local vMain = CreateSection(pVisuals, "ESP OVERLAY")
 CreateToggle(vMain, "Enable ESP", config, "esp_enabled")
@@ -454,10 +453,6 @@ for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then SetupESP(p) 
 Players.PlayerAdded:Connect(SetupESP)
 Players.PlayerRemoving:Connect(RemoveESP)
 
-local isAiming = false
-UserInputService.InputBegan:Connect(function(i, gp) if not gp and i.UserInputType == Enum.UserInputType.MouseButton2 then isAiming = true end end)
-UserInputService.InputEnded:Connect(function(i, gp) if i.UserInputType == Enum.UserInputType.MouseButton2 then isAiming = false end end)
-
 local function GetAimPart(char)
     local sel = config.selectors.aim_part
     return sel == 1 and char:FindFirstChild("Head") or sel == 2 and char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
@@ -471,14 +466,18 @@ local function IsVisible(targetPart)
 end
 
 -- ==========================================
--- GŁÓWNA PĘTLA RENDEROWANIA
+-- GŁÓWNA PĘTLA RENDEROWANIA (ACS OVERRIDE)
 -- ==========================================
-local mainLoop = RunService.RenderStepped:Connect(function()
+-- Używamy BindToRenderStep na Priority 2000, aby celownik ustawiał się PO obliczeniach recoilu ACS.
+RunService:BindToRenderStep("AsapwareMain", 2000, function()
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
     local mouseLoc = UserInputService:GetMouseLocation()
     
     FOV_Circle.Position = mouseLoc; FOV_Circle.Radius = config.sliders.aim_fov; FOV_Circle.Visible = config.toggles.aim_showFov and config.toggles.aim_enabled
     CrosshairDot.Position = mouseLoc; CrosshairDot.Visible = config.toggles.aim_crosshair and config.toggles.aim_enabled
+
+    -- BYPASS ACS INPUT SINKING: Używamy IsMouseButtonPressed zamiast eventów InputBegan
+    local isAiming = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
 
     -- AIMBOT LOGIC
     local closestTarget = nil; local shortestDist = math.huge
@@ -514,9 +513,15 @@ local mainLoop = RunService.RenderStepped:Connect(function()
             local diffY = (pos.Y + config.sliders.aim_offsetY) - mouseLoc.Y
             local smooth = config.sliders.aim_smooth
             
-            if mousemoverel then
-                mousemoverel(smooth <= 1 and diffX or diffX / smooth, smooth <= 1 and diffY or diffY / smooth)
+            if config.selectors.aim_method == 1 then
+                -- MOUSE METHOD
+                if mousemoverel then
+                    mousemoverel(smooth <= 1 and diffX or diffX / smooth, smooth <= 1 and diffY or diffY / smooth)
+                else
+                    Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, closestTarget), smooth <= 1 and 1 or (1 / smooth))
+                end
             else
+                -- CAMERA METHOD (IDEALNE DLA ACS)
                 Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, closestTarget), smooth <= 1 and 1 or (1 / smooth))
             end
         end
@@ -599,7 +604,7 @@ local mainLoop = RunService.RenderStepped:Connect(function()
 end)
 
 _G.AsapwareUnload = function()
-    if mainLoop then mainLoop:Disconnect(); mainLoop = nil end
+    RunService:UnbindFromRenderStep("AsapwareMain")
     ScreenGui:Destroy()
     
     for _, esp in pairs(ESP_Data) do for k, v in pairs(esp) do if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end else v:Remove() end end end
@@ -609,7 +614,7 @@ _G.AsapwareUnload = function()
     table.clear(AllDrawings)
     
     _G.AsapwareUnload = nil
-    print("ASAPWARE 13.1: Zniszczono pomyślnie.")
+    print("ASAPWARE 14.0: Zniszczono pomyślnie.")
 end
 
-print("ASAPWARE 13.1: Aktywne! | [INSERT] Menu | [DEL] Zniszcz Cheata | [PPM] Aimbot")
+print("ASAPWARE 14.0: Aktywne! | [INSERT] Menu | [DEL] Zniszcz Cheata | [PPM] Aimbot")
