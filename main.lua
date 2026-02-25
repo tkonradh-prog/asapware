@@ -1,4 +1,4 @@
---- START OF FILE Paste February 25, 2026 - 3:22PM (ASAPWARE v4 + KEYBINDS) ---
+--- START OF FILE Paste February 25, 2026 - 3:22PM (ASAPWARE v6 + ACS GODMODE) ---
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -21,30 +21,28 @@ local config = {
     toggles = {
         boxes = true, healthbars = true, healthtext = false,
         names = true, weapons = false, distances = false,
-        skeletons = true, tracers = false, chams = false,
+        skeletons = true, tracers = false,
         aim_enabled = false, aim_showFov = true,
         aim_crosshair = true, aim_wallCheck = true, aim_predict = false,
-        triggerbot = false, time_changer = false, fov_changer = false,
+        time_changer = false, fov_changer = false,
         rainbow_ui = false, bhop = false, third_person = false,
-        fly = false
+        fly = false, godmode = false -- ACS GODMODE
     },
     sliders = {
         esp_distance = 3000, boxThickness = 1,
         aim_distance = 1500, aim_fov = 100, aim_smooth = 5,
         aim_offsetX = 0, aim_offsetY = 36, aim_pred_amt = 10,
         custom_time = 12, custom_fov = 90,
-        trigger_delay = 0, trigger_cooldown = 100, trigger_distance = 500,
         fly_speed = 50
     },
     colors = {
         enemy_esp = Color3.fromRGB(255, 75, 75),
-        enemy_chams = Color3.fromRGB(255, 50, 50),
         ui_accent = Color3.fromRGB(110, 160, 255) 
     },
-    selectors = { aim_part = 1, aim_method = 2, tracer_origin = 1, trigger_hitbox = 1 },
+    selectors = { aim_part = 1, aim_method = 2, tracer_origin = 1 },
     keybinds = {
-        aimbot = Enum.UserInputType.MouseButton2, -- Domyślnie Prawy Przycisk Myszy
-        fly = Enum.KeyCode.F                      -- Domyślnie Klawisz F
+        aimbot = Enum.UserInputType.MouseButton2,
+        fly = Enum.KeyCode.F
     }
 }
 
@@ -54,25 +52,22 @@ local ESP_COLORS = {
 }
 
 -- Zmienne wewnetrzne
-local trigger_lastShot = 0
-local trigger_isShooting = false
 local flyPlatform = nil
+local GlobalRaycastParams = RaycastParams.new()
+GlobalRaycastParams.FilterType = Enum.RaycastFilterType.Exclude
+GlobalRaycastParams.IgnoreWater = true
 
 -- ==========================================
--- SYSTEM HP
+-- OPTYMALNY SYSTEM HP
 -- ==========================================
-local HealthCache = {}
-local function AnalyzePlayerHealth(player, char)
-    task.wait(1.5); if not char or not char.Parent then return end
-    local currentHP_Func = nil; local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum and hum.MaxHealth > 1 then currentHP_Func = function() return hum.Health, hum.MaxHealth end end
-    if not currentHP_Func then currentHP_Func = function() return 100, 100 end end
-    HealthCache[player] = { Char = char, Fetch = currentHP_Func }
-end
-local function GetHP(player)
-    local cache = HealthCache[player]; 
-    if cache and cache.Char == player.Character then return cache.Fetch() end; 
-    return 100, 100 
+local function GetHealth(player)
+    if player and player.Character then
+        local hum = player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            return hum.Health, hum.MaxHealth
+        end
+    end
+    return 0, 100
 end
 
 -- ==========================================
@@ -277,12 +272,6 @@ CreatePreviewPill("Box", "boxes", "Toggle bounding box ESP.")
 UpdatePreviewEvent.Event:Connect(function()
     P_Box.Visible = config.toggles.boxes; P_Name.Visible = config.toggles.names
     P_HealthBg.Visible = config.toggles.healthbars; P_Weapon.Visible = config.toggles.weapons
-    if config.toggles.chams then 
-        for _, p in ipairs(DummyModel:GetChildren()) do p.Material = Enum.Material.ForceField; p.Color = config.colors.enemy_chams end
-    else 
-        for _, p in ipairs(DummyModel:GetChildren()) do p.Material = Enum.Material.SmoothPlastic; p.Color = Color3.fromRGB(60, 65, 75) end 
-        GunBody.Color = Color3.fromRGB(30,30,35); GunBarrel.Color = Color3.fromRGB(20,20,25)
-    end
 end)
 
 local S_Lines = {}
@@ -379,7 +368,7 @@ local function CreateKeybind(parent, text, tbl, key, tooltipText)
     
     local listening = false
     btn.MouseButton1Click:Connect(function()
-        task.wait() -- Zapobiega natychmiastowemu zlapaniu tego samego klikniecia myszy
+        task.wait() 
         listening = true
         btn.Text = "..."
         str.Color = config.colors.ui_accent
@@ -424,7 +413,6 @@ local function CreateCheckbox(parent, text, tbl, key, tooltipText)
         TweenService:Create(box, TweenInfo.new(0.2), {BackgroundColor3 = goalColor}):Play()
         check.Visible = tbl[key]; str.Enabled = not tbl[key]
     end
-    -- Nasluchiwanie by dynamicznie aktualizowac (np gdy Keybind to wlaczy/wylaczy)
     UpdatePreviewEvent.Event:Connect(setVisuals)
     
     btn.MouseButton1Click:Connect(function() tbl[key] = not tbl[key]; UpdatePreviewEvent:Fire() end)
@@ -516,7 +504,7 @@ CreateCheckbox(aSec1, "Draw FOV Circle", config.toggles, "aim_showFov", "Shows t
 CreateCheckbox(aSec1, "Visibility Check", config.toggles, "aim_wallCheck", "Prevents locking onto enemies behind walls.")
 CreateCheckbox(aSec1, "Velocity Prediction", config.toggles, "aim_predict", "Predicts where the enemy will be moving.")
 
-local aSec3 = CreateSection(colsAim.Left, "Aimbot Configuration")
+local aSec3 = CreateSection(colsAim.Right, "Aimbot Configuration")
 CreateDropdown(aSec3, "Hitbox", config.selectors, "aim_part", {"Head", "Torso", "Root"}, "Which body part the aimbot should track.")
 CreateDropdown(aSec3, "Method", config.selectors, "aim_method", {"Mouse Movement", "Camera Snap"}, "How the aimbot corrects your aim.")
 CreateSlider(aSec3, "Field of View", config.sliders, "aim_fov", 10, 600, "The radius of the aimbot targeting zone.")
@@ -524,19 +512,10 @@ CreateSlider(aSec3, "Smoothness", config.sliders, "aim_smooth", 1, 20, "Higher v
 CreateSlider(aSec3, "Aim Offset X", config.sliders, "aim_offsetX", -100, 100, "Shifts aim horizontally.")
 CreateSlider(aSec3, "Aim Offset Y", config.sliders, "aim_offsetY", -100, 100, "Shifts aim vertically (good for bullet drop).")
 
--- TRIGGERBOT
-local aSec2 = CreateSection(colsAim.Right, "Triggerbot")
-CreateCheckbox(aSec2, "Enable Triggerbot", config.toggles, "triggerbot", "Automatically shoots when crosshair is on an enemy.")
-CreateDropdown(aSec2, "Target Hitbox", config.selectors, "trigger_hitbox", {"Any Part", "Head Only", "Torso Only"}, "Which parts triggerbot will shoot at.")
-CreateSlider(aSec2, "Max Distance", config.sliders, "trigger_distance", 10, 2000, "Maximum distance for triggerbot to work.")
-CreateSlider(aSec2, "Shoot Delay (ms)", config.sliders, "trigger_delay", 0, 500, "Humanized delay before shooting (milliseconds).")
-CreateSlider(aSec2, "Cooldown (ms)", config.sliders, "trigger_cooldown", 0, 1000, "Time between automatic shots (milliseconds).")
-
 -- VISUALS
 local vSec1 = CreateSection(colsVis.Left, "Esp Elements")
 CreateCheckbox(vSec1, "Master Switch", config, "esp_enabled", "Toggles all visual features on or off.")
 CreateCheckbox(vSec1, "Bounding Box", config.toggles, "boxes", "Draws a square around enemies.")
-CreateCheckbox(vSec1, "Fill Chams", config.toggles, "chams", "Highlights the entire enemy model.")
 CreateCheckbox(vSec1, "Skeleton", config.toggles, "skeletons", "Draws lines connecting enemy joints.")
 CreateCheckbox(vSec1, "Health Bar", config.toggles, "healthbars", "Shows how much HP the enemy has.")
 
@@ -548,7 +527,6 @@ CreateDropdown(vSec2, "Tracer Origin", config.selectors, "tracer_origin", {"Bott
 
 local vSec3 = CreateSection(colsVis.Right, "Colors")
 CreateColorPicker(vSec3, "Enemy ESP Box", config.colors, "enemy_esp", "Color of the ESP boxes & lines.")
-CreateColorPicker(vSec3, "Enemy Chams Fill", config.colors, "enemy_chams", "Color of the player highlight/chams.")
 
 -- MISC
 local mSec1 = CreateSection(colsMisc.Left, "World Modulation")
@@ -557,7 +535,8 @@ CreateSlider(mSec1, "Time of Day", config.sliders, "custom_time", 0, 24, "Set th
 CreateCheckbox(mSec1, "Enable Custom FOV", config.toggles, "fov_changer", "Override the game's camera field of view.")
 CreateSlider(mSec1, "Camera FOV", config.sliders, "custom_fov", 60, 120, "Adjust how wide your camera view is.")
 
-local mSec2 = CreateSection(colsMisc.Right, "Movement & View")
+local mSec2 = CreateSection(colsMisc.Right, "Exploits & Movement")
+CreateCheckbox(mSec2, "ACS Godmode", config.toggles, "godmode", "Forces max health & blood in ACS games.")
 CreateCheckbox(mSec2, "Bunny Hop", config.toggles, "bhop", "Hold Space to jump automatically.")
 CreateCheckbox(mSec2, "Third Person", config.toggles, "third_person", "Forces camera into 3rd person mode.")
 CreateCheckbox(mSec2, "Stealth Fly (Undetected)", config.toggles, "fly", "Safe fly method via invisible platform.")
@@ -595,13 +574,12 @@ UIScale.Scale = 1
 
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
-    if input.KeyCode == Enum.KeyCode.Insert then ToggleMenu() end
+    if input.KeyCode == Enum.KeyCode.Delete then ToggleMenu() end
     
-    -- Listener: Wlaczanie / Wylaczanie Fly Keybindem
     if config.keybinds.fly then
         if input.KeyCode == config.keybinds.fly or input.UserInputType == config.keybinds.fly then
             config.toggles.fly = not config.toggles.fly
-            UpdatePreviewEvent:Fire() -- Wymuszenie aktualizacji kontrolek Checkbox (w tym Fly UI)
+            UpdatePreviewEvent:Fire() 
         end
     end
 end)
@@ -624,7 +602,6 @@ table.insert(UIThemeObjects, {Obj = CrossLeft, Prop = "Color"}); table.insert(UI
 
 local function SetupESP(player)
     if ESP_Data[player] then return end
-    local hl = Instance.new("Highlight", CoreGui); hl.FillTransparency = 0.4; hl.OutlineTransparency = 1
     ESP_Data[player] = {
         BoxOutline = CreateDraw("Square", {Filled = false, Color = ESP_COLORS.Outline}),
         Box = CreateDraw("Square", {Filled = false}),
@@ -635,13 +612,18 @@ local function SetupESP(player)
         Distance = CreateDraw("Text", {Center = true, Outline = true, Font = 2, Size = 11, Color = Theme.TextGray}),
         Weapon = CreateDraw("Text", {Center = true, Outline = true, Font = 2, Size = 11, Color = Color3.fromRGB(180,180,220)}),
         Tracer = CreateDraw("Line", {Thickness = 1, Transparency = 0.5}),
-        SkeletonLines = {}, Highlight = hl
+        SkeletonLines = {}
     }
-    player.CharacterAdded:Connect(function(char) hl.Adornee = char; task.spawn(function() AnalyzePlayerHealth(player, char) end) end)
-    if player.Character then hl.Adornee = player.Character; task.spawn(function() AnalyzePlayerHealth(player, player.Character) end) end
 end
 local function RemoveESP(player) 
-    HealthCache[player] = nil; if ESP_Data[player] then ESP_Data[player].Highlight:Destroy(); for k, v in pairs(ESP_Data[player]) do if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end elseif k ~= "Highlight" then v:Remove() end end; ESP_Data[player] = nil end 
+    if ESP_Data[player] then 
+        for k, v in pairs(ESP_Data[player]) do 
+            if k == "SkeletonLines" then 
+                for _, l in ipairs(v) do l:Remove() end 
+            else v:Remove() end 
+        end
+        ESP_Data[player] = nil 
+    end 
 end
 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then SetupESP(p) end end
 Players.PlayerAdded:Connect(SetupESP); Players.PlayerRemoving:Connect(RemoveESP)
@@ -650,8 +632,10 @@ local function GetAimPart(char)
     local sel = config.selectors.aim_part; return sel == 1 and char:FindFirstChild("Head") or sel == 2 and char:FindFirstChild("UpperTorso") or char:FindFirstChild("HumanoidRootPart")
 end
 local function IsVisible(targetPart)
-    local origin = Camera.CFrame.Position; local params = RaycastParams.new(); params.FilterDescendantsInstances = {LocalPlayer.Character, Camera}; params.FilterType = Enum.RaycastFilterType.Exclude; params.IgnoreWater = true;
-    local result = Workspace:Raycast(origin, (targetPart.Position - origin), params); return not result or result.Instance:IsDescendantOf(targetPart.Parent)
+    local origin = Camera.CFrame.Position
+    GlobalRaycastParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
+    local result = Workspace:Raycast(origin, (targetPart.Position - origin), GlobalRaycastParams)
+    return not result or result.Instance:IsDescendantOf(targetPart.Parent)
 end
 
 local function GetBones(char)
@@ -666,7 +650,7 @@ local function GetBones(char)
 end
 
 -- ==========================================
--- GŁÓWNA PĘTLA (RENDER STEPPED)
+-- GŁÓWNA PĘTLA (RENDER STEPPED) ZOPTYMALIZOWANA
 -- ==========================================
 RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1, function()
     local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
@@ -694,6 +678,31 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
     if config.toggles.bhop and UserInputService:IsKeyDown(Enum.KeyCode.Space) and not config.toggles.fly then
         local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum and hum.FloorMaterial ~= Enum.Material.Air then hum.Jump = true end
+    end
+    
+    -- ACS GODMODE (Zoptymalizowane pod nadpisywanie zmiennych ACS)
+    if config.toggles.godmode then
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.Health = hum.MaxHealth end
+            
+            local h = char:FindFirstChild("Health")
+            if h and (h:IsA("NumberValue") or h:IsA("IntValue")) then h.Value = 100 end
+            
+            local b = char:FindFirstChild("Blood")
+            if b and (b:IsA("NumberValue") or b:IsA("IntValue")) then b.Value = 100 end
+            
+            local vars = char:FindFirstChild("ACS_Modulo") and char.ACS_Modulo:FindFirstChild("Variaveis")
+            if vars then
+                local vH = vars:FindFirstChild("Health")
+                if vH then vH.Value = 100 end
+                local vB = vars:FindFirstChild("Blood")
+                if vB then vB.Value = 100 end
+                local vBleed = vars:FindFirstChild("Bleeding")
+                if vBleed then vBleed.Value = 0 end
+            end
+        end
     end
     
     -- STEALTH FLY
@@ -758,49 +767,6 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
         else for _, l in ipairs(S_Lines) do l.Visible = false end end
     end
 
-    -- TRIGGERBOT
-    if config.toggles.triggerbot then
-        local origin = Camera.CFrame.Position
-        local direction = Camera.CFrame.LookVector * config.sliders.trigger_distance
-        local rayParams = RaycastParams.new()
-        rayParams.FilterDescendantsInstances = {LocalPlayer.Character, Camera}
-        rayParams.FilterType = Enum.RaycastFilterType.Exclude
-        
-        local rayResult = Workspace:Raycast(origin, direction, rayParams)
-        
-        if rayResult and rayResult.Instance then
-            local hitPart = rayResult.Instance
-            local char = hitPart.Parent
-            if char:IsA("Accessory") then char = char.Parent end
-            
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                local player = Players:GetPlayerFromCharacter(char)
-                if player and player ~= LocalPlayer and (not config.teamCheck or player.Team ~= LocalPlayer.Team) then
-                    
-                    local canShoot = false
-                    local hName = hitPart.Name
-                    if config.selectors.trigger_hitbox == 1 then canShoot = true
-                    elseif config.selectors.trigger_hitbox == 2 and hName == "Head" then canShoot = true
-                    elseif config.selectors.trigger_hitbox == 3 and (hName:match("Torso") or hName == "HumanoidRootPart") then canShoot = true
-                    end
-                    
-                    if canShoot then
-                        local timeSinceLastShot = (cTick - trigger_lastShot) * 1000
-                        if timeSinceLastShot >= config.sliders.trigger_cooldown and not trigger_isShooting then
-                            trigger_isShooting = true
-                            task.delay(config.sliders.trigger_delay / 1000, function()
-                                if mouse1click then mouse1click() end
-                                trigger_lastShot = tick()
-                                trigger_isShooting = false
-                            end)
-                        end
-                    end
-                end
-            end
-        end
-    end
-
     -- AIMBOT & CROSSHAIR
     FOV_Circle.Position = mouseLoc; FOV_Circle.Radius = config.sliders.aim_fov; FOV_Circle.Visible = config.toggles.aim_showFov and config.toggles.aim_enabled
     
@@ -810,7 +776,6 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
     CrossLeft.From = Vector2.new(mouseLoc.X - cGap, mouseLoc.Y); CrossLeft.To = Vector2.new(mouseLoc.X - cGap - cSize, mouseLoc.Y); CrossLeft.Visible = config.toggles.aim_crosshair
     CrossRight.From = Vector2.new(mouseLoc.X + cGap, mouseLoc.Y); CrossRight.To = Vector2.new(mouseLoc.X + cGap + cSize, mouseLoc.Y); CrossRight.Visible = config.toggles.aim_crosshair
 
-    -- Wczytywanie zbindowanego przycisku aimbota
     local isAiming = false
     local aBind = config.keybinds.aimbot
     if aBind then
@@ -828,7 +793,7 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
     if config.toggles.aim_enabled and isAiming then
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and (not config.teamCheck or player.Team ~= LocalPlayer.Team) then
-                local hp = GetHP(player)
+                local hp = GetHealth(player)
                 if hp > 0 then
                     local aimPart = GetAimPart(player.Character)
                     if aimPart and (Camera.CFrame.Position - aimPart.Position).Magnitude <= config.sliders.aim_distance then
@@ -861,67 +826,73 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
         end
     end
 
-    -- ESP
+    -- ZOPTYMALIZOWANE ESP
     local t_Thick = config.sliders.boxThickness
     for player, esp in pairs(ESP_Data) do
         local isVisible = false
         local char = player.Character
 
         if config.esp_enabled and char and (not config.teamCheck or player.Team ~= LocalPlayer.Team) then
-            local hp, maxHp = GetHP(player)
-            local root = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart or char:FindFirstChild("Head")
+            local hp, maxHp = GetHealth(player)
             
-            if root and hp > 0 then
-                local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                local dist = (Camera.CFrame.Position - root.Position).Magnitude
-                
-                if onScreen and dist <= config.sliders.esp_distance then
-                    isVisible = true
-                    local topPos = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 3.2, 0))
-                    local botPos = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3.5, 0))
-                    local boxH = botPos.Y - topPos.Y; local boxW = boxH / 1.8; local boxX = pos.X - (boxW / 2); local boxY = topPos.Y
+            if hp > 0 then
+                local root = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart or char:FindFirstChild("Head")
+                if root then
+                    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                    local dist = (Camera.CFrame.Position - root.Position).Magnitude
                     
-                    if config.toggles.chams then esp.Highlight.Enabled = true; esp.Highlight.FillColor = config.colors.enemy_chams else esp.Highlight.Enabled = false end
+                    if onScreen and dist <= config.sliders.esp_distance then
+                        isVisible = true
+                        local topPos = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 3.2, 0))
+                        local botPos = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3.5, 0))
+                        local boxH = botPos.Y - topPos.Y; local boxW = boxH / 1.8; local boxX = pos.X - (boxW / 2); local boxY = topPos.Y
 
-                    if config.toggles.boxes then
-                        esp.BoxOutline.Thickness = t_Thick + 2; esp.BoxOutline.Size = Vector2.new(boxW, boxH); esp.BoxOutline.Position = Vector2.new(boxX, boxY); esp.BoxOutline.Visible = true
-                        esp.Box.Thickness = t_Thick; esp.Box.Size = Vector2.new(boxW, boxH); esp.Box.Position = Vector2.new(boxX, boxY); esp.Box.Color = config.colors.enemy_esp; esp.Box.Visible = true
-                    else esp.BoxOutline.Visible = false; esp.Box.Visible = false end
+                        if config.toggles.boxes then
+                            esp.BoxOutline.Thickness = t_Thick + 2; esp.BoxOutline.Size = Vector2.new(boxW, boxH); esp.BoxOutline.Position = Vector2.new(boxX, boxY); esp.BoxOutline.Visible = true
+                            esp.Box.Thickness = t_Thick; esp.Box.Size = Vector2.new(boxW, boxH); esp.Box.Position = Vector2.new(boxX, boxY); esp.Box.Color = config.colors.enemy_esp; esp.Box.Visible = true
+                        else esp.BoxOutline.Visible = false; esp.Box.Visible = false end
 
-                    if config.toggles.healthbars then
-                        local hpPct = math.clamp(hp / maxHp, 0, 1); local barH = boxH * hpPct
-                        esp.HealthOutline.Size = Vector2.new(4, boxH + 2); esp.HealthOutline.Position = Vector2.new(boxX - 7, boxY - 1); esp.HealthOutline.Visible = true
-                        esp.HealthBar.Size = Vector2.new(2, barH); esp.HealthBar.Position = Vector2.new(boxX - 6, boxY + (boxH - barH)); esp.HealthBar.Color = Color3.fromRGB(255 - (hpPct * 255), hpPct * 255, 30); esp.HealthBar.Visible = true
-                        if config.toggles.healthtext and hp < maxHp then esp.HealthText.Text = tostring(math.floor(hp)); esp.HealthText.Position = Vector2.new(boxX - 18, boxY + (boxH - barH) - 6); esp.HealthText.Visible = true else esp.HealthText.Visible = false end
-                    else esp.HealthOutline.Visible = false; esp.HealthBar.Visible = false; esp.HealthText.Visible = false end
+                        if config.toggles.healthbars then
+                            local hpPct = math.clamp(hp / maxHp, 0, 1); local barH = boxH * hpPct
+                            esp.HealthOutline.Size = Vector2.new(4, boxH + 2); esp.HealthOutline.Position = Vector2.new(boxX - 7, boxY - 1); esp.HealthOutline.Visible = true
+                            esp.HealthBar.Size = Vector2.new(2, barH); esp.HealthBar.Position = Vector2.new(boxX - 6, boxY + (boxH - barH)); esp.HealthBar.Color = Color3.fromRGB(255 - (hpPct * 255), hpPct * 255, 30); esp.HealthBar.Visible = true
+                            if config.toggles.healthtext and hp < maxHp then esp.HealthText.Text = tostring(math.floor(hp)); esp.HealthText.Position = Vector2.new(boxX - 18, boxY + (boxH - barH) - 6); esp.HealthText.Visible = true else esp.HealthText.Visible = false end
+                        else esp.HealthOutline.Visible = false; esp.HealthBar.Visible = false; esp.HealthText.Visible = false end
 
-                    if config.toggles.names then esp.Name.Text = player.Name; esp.Name.Position = Vector2.new(pos.X, boxY - 18); esp.Name.Visible = true else esp.Name.Visible = false end
-                    
-                    local bottomY = boxY + boxH + 3
-                    if config.toggles.distances then esp.Distance.Text = "[" .. math.floor(dist) .. "m]"; esp.Distance.Position = Vector2.new(pos.X, bottomY); esp.Distance.Visible = true; bottomY = bottomY + 14 else esp.Distance.Visible = false end
-                    if config.toggles.weapons then local tool = char:FindFirstChildOfClass("Tool"); if tool then esp.Weapon.Text = tool.Name; esp.Weapon.Position = Vector2.new(pos.X, bottomY); esp.Weapon.Visible = true else esp.Weapon.Visible = false end else esp.Weapon.Visible = false end
+                        if config.toggles.names then esp.Name.Text = player.Name; esp.Name.Position = Vector2.new(pos.X, boxY - 18); esp.Name.Visible = true else esp.Name.Visible = false end
+                        
+                        local bottomY = boxY + boxH + 3
+                        if config.toggles.distances then esp.Distance.Text = "[" .. math.floor(dist) .. "m]"; esp.Distance.Position = Vector2.new(pos.X, bottomY); esp.Distance.Visible = true; bottomY = bottomY + 14 else esp.Distance.Visible = false end
+                        if config.toggles.weapons then local tool = char:FindFirstChildOfClass("Tool"); if tool then esp.Weapon.Text = tool.Name; esp.Weapon.Position = Vector2.new(pos.X, bottomY); esp.Weapon.Visible = true else esp.Weapon.Visible = false end else esp.Weapon.Visible = false end
 
-                    if config.toggles.tracers then
-                        local origin = screenCenter
-                        if config.selectors.tracer_origin == 2 then origin = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2) elseif config.selectors.tracer_origin == 3 then origin = mouseLoc end
-                        esp.Tracer.From = origin; esp.Tracer.To = Vector2.new(pos.X, botPos.Y); esp.Tracer.Color = config.colors.enemy_esp; esp.Tracer.Visible = true
-                    else esp.Tracer.Visible = false end
-                    
-                    if config.toggles.skeletons then
-                        local bones = GetBones(char)
-                        for i, p in ipairs(bones) do
-                            local p1, on1 = Camera:WorldToViewportPoint(p[1].Position); local p2, on2 = Camera:WorldToViewportPoint(p[2].Position)
-                            if on1 and on2 then
-                                if not esp.SkeletonLines[i] then esp.SkeletonLines[i] = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Skeleton, Transparency = 0.8}) end
-                                esp.SkeletonLines[i].From = Vector2.new(p1.X, p1.Y); esp.SkeletonLines[i].To = Vector2.new(p2.X, p2.Y); esp.SkeletonLines[i].Visible = true
-                            elseif esp.SkeletonLines[i] then esp.SkeletonLines[i].Visible = false end
-                        end
-                        for i = #bones + 1, #esp.SkeletonLines do esp.SkeletonLines[i].Visible = false end
-                    else for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end end
+                        if config.toggles.tracers then
+                            local origin = screenCenter
+                            if config.selectors.tracer_origin == 2 then origin = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2) elseif config.selectors.tracer_origin == 3 then origin = mouseLoc end
+                            esp.Tracer.From = origin; esp.Tracer.To = Vector2.new(pos.X, botPos.Y); esp.Tracer.Color = config.colors.enemy_esp; esp.Tracer.Visible = true
+                        else esp.Tracer.Visible = false end
+                        
+                        if config.toggles.skeletons then
+                            local bones = GetBones(char)
+                            for i, p in ipairs(bones) do
+                                local p1, on1 = Camera:WorldToViewportPoint(p[1].Position); local p2, on2 = Camera:WorldToViewportPoint(p[2].Position)
+                                if on1 and on2 then
+                                    if not esp.SkeletonLines[i] then esp.SkeletonLines[i] = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Skeleton, Transparency = 0.8}) end
+                                    esp.SkeletonLines[i].From = Vector2.new(p1.X, p1.Y); esp.SkeletonLines[i].To = Vector2.new(p2.X, p2.Y); esp.SkeletonLines[i].Visible = true
+                                elseif esp.SkeletonLines[i] then esp.SkeletonLines[i].Visible = false end
+                            end
+                            for i = #bones + 1, #esp.SkeletonLines do esp.SkeletonLines[i].Visible = false end
+                        else for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end end
+                    end
                 end
             end
         end
-        if not isVisible then esp.Highlight.Enabled = false; for k, v in pairs(esp) do if k == "SkeletonLines" then for _, l in ipairs(v) do l.Visible = false end elseif k ~= "Highlight" then v.Visible = false end end end
+        
+        if not isVisible then 
+            esp.BoxOutline.Visible = false; esp.Box.Visible = false
+            esp.HealthOutline.Visible = false; esp.HealthBar.Visible = false; esp.HealthText.Visible = false
+            esp.Name.Visible = false; esp.Distance.Visible = false; esp.Weapon.Visible = false; esp.Tracer.Visible = false
+            for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
+        end
     end
 end)
 
@@ -929,11 +900,11 @@ _G.AsapwareUnload = function()
     RunService:UnbindFromRenderStep("AsapwareMain")
     if ScreenGui then ScreenGui:Destroy() end
     if flyPlatform then flyPlatform:Destroy() end
-    for _, esp in pairs(ESP_Data) do esp.Highlight:Destroy(); for k, v in pairs(esp) do if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end elseif k ~= "Highlight" then v:Remove() end end end
-    table.clear(ESP_Data); table.clear(HealthCache)
+    for _, esp in pairs(ESP_Data) do for k, v in pairs(esp) do if k == "SkeletonLines" then for _, l in ipairs(v) do l:Remove() end else v:Remove() end end end
+    table.clear(ESP_Data)
     for _, obj in ipairs(AllDrawings) do if obj.Remove then obj:Remove() end end
     table.clear(AllDrawings)
     _G.AsapwareUnload = nil
 end
 
-print("ASAPWARE V4 (KEYBINDS UPDATE): Załadowano! Wciśnij [INSERT], aby otworzyć.")
+print("ASAPWARE V6 (ACS GODMODE): Załadowano! Wciśnij [INSERT], aby otworzyć.")
