@@ -1,4 +1,4 @@
---- START OF FILE Paste ASAPWARE V20 (THE PINNACLE - PIXEL PERFECT DESIGN) ---
+--- START OF FILE Paste ASAPWARE V20 (THE PINNACLE - PIXEL PERFECT DESIGN) + UPDATE ---
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -39,11 +39,14 @@ local config = {
         world_enabled = false, fog_enabled = false, shadows_enabled = true,
         time_changer = false, fov_changer = false, third_person = false,
         aim_enabled = false, aim_showFov = true, aim_crosshair = true, 
-        aim_wallCheck = true, aim_predict = false,
+        aim_wallCheck = true, aim_predict = false, aim_autoSnapClose = false, -- [NOWE] Auto Snap
+        triggerbot = false, trigger_wallCheck = true, -- [NOWE] Triggerbot
         rainbow_ui = false, bhop = false, fly = false, noclip = false, godmode = false, watermark = true
     },
     sliders = {
         aim_distance = 1500, aim_fov = 100, aim_smooth = 5, aim_offsetX = 0, aim_offsetY = 0, aim_pred_amt = 10,
+        aim_snapDistance = 15, -- [NOWE] Zasięg Auto Snapa
+        trigger_delay = 0, -- [NOWE] Opóźnienie Triggerbota
         esp_distance = 1500, boxThickness = 1, arrow_radius = 200, arrow_size = 15,
         custom_time = 12, custom_fov = 90, brightness = 20, exposure = 0, fog_start = 0, fog_end = 1000,
         fly_speed = 50, tp_speed = 150
@@ -103,7 +106,7 @@ local Theme = {
 }
 
 local function Tween(obj, props, time)
-    local t = time or 0.15 -- Szybsze, bardziej responsywne animacje
+    local t = time or 0.15 
     pcall(function() TweenService:Create(obj, TweenInfo.new(t, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props):Play() end)
 end
 
@@ -577,8 +580,8 @@ local function CreateDropdown(parent, text, tbl, key, options)
     local frame = Instance.new("Frame", parent)
     frame.Size = UDim2.new(1, 0, 0, 44)
     frame.BackgroundTransparency = 1
-    frame.ClipsDescendants = false -- WAŻNE ABY LISTA WYCHODZIŁA POZA RAMKE
-    frame.ZIndex = 50 -- WYSOKI Z-INDEX
+    frame.ClipsDescendants = false
+    frame.ZIndex = 50
     frame.LayoutOrder = GetNextLayoutOrder()
 
     local lbl = Instance.new("TextLabel", frame)
@@ -628,7 +631,6 @@ local function CreateDropdown(parent, text, tbl, key, options)
 
     local isOpen = false
 
-    -- FIX Z-INDEXÓW DLA INNYCH ELEMENTÓW KIEDY OTWARTE
     local function setZIndex(val)
         frame.ZIndex = val
         btn.ZIndex = val + 1
@@ -801,7 +803,7 @@ local function CreateColorPicker(parent, text, tbl, key)
             frame.ZIndex = 100
             pStr.Transparency = 0
             Tween(pickerBox, {Size = UDim2.new(1, 0, 0, 120)})
-            Tween(frame, {Size = UDim2.new(1, 0, 0, 155)}) -- Rozszerza rodzica żeby layout zadziałał
+            Tween(frame, {Size = UDim2.new(1, 0, 0, 155)})
         else
             Tween(pickerBox, {Size = UDim2.new(1, 0, 0, 0)})
             Tween(frame, {Size = UDim2.new(1, 0, 0, 24)})
@@ -953,7 +955,6 @@ local function Build2DPreview(parent)
     dummy.Size = UDim2.new(1,0,1,0)
     
     local dCol = Color3.fromRGB(65, 70, 80)
-    -- Proporcje R6
     local head = Instance.new("Frame", dummy)
     head.Size = UDim2.new(0, 24, 0, 24)
     head.Position = UDim2.new(0, Center.X, 0, Center.Y - 38)
@@ -1090,6 +1091,12 @@ CreateToggle(aSec1, "Draw FOV", config.toggles, "aim_showFov")
 CreateToggle(aSec1, "Wall Check", config.toggles, "aim_wallCheck")
 CreateToggle(aSec1, "Prediction", config.toggles, "aim_predict")
 
+-- [NOWE] SEKCJA TRIGGERBOT
+local aSec3 = CreateSection(colsAim.Left, "Triggerbot")
+CreateToggle(aSec3, "Enable Triggerbot", config.toggles, "triggerbot")
+CreateToggle(aSec3, "Wall Check", config.toggles, "trigger_wallCheck")
+CreateSlider(aSec3, "Click Delay (ms)", config.sliders, "trigger_delay", 0, 500)
+
 local aSec2 = CreateSection(colsAim.Right, "Configuration")
 CreateDropdown(aSec2, "Hitbox", config.selectors, "aim_part", {"Head", "Torso", "Root"})
 CreateDropdown(aSec2, "Method", config.selectors, "aim_method", {"Mouse Movement", "Camera Snap"})
@@ -1097,6 +1104,10 @@ CreateSlider(aSec2, "FOV Radius", config.sliders, "aim_fov", 10, 500)
 CreateSlider(aSec2, "Smoothness", config.sliders, "aim_smooth", 1, 20)
 CreateSlider(aSec2, "Aim Offset X", config.sliders, "aim_offsetX", -100, 100)
 CreateSlider(aSec2, "Aim Offset Y", config.sliders, "aim_offsetY", -100, 100)
+-- [NOWE] AUTO SNAP
+CreateToggle(aSec2, "Auto-Snap Close Range", config.toggles, "aim_autoSnapClose")
+CreateSlider(aSec2, "Snap Distance (Studs)", config.sliders, "aim_snapDistance", 5, 50)
+
 
 -- ZAKŁADKA VISUALS (ESP)
 local vSecPreview = CreateSection(colsVis.Left, "2D ESP Preview")
@@ -1406,6 +1417,8 @@ end
 -- ==========================================
 -- 8. GŁÓWNA PĘTLA (RENDERING & LOGIC)
 -- ==========================================
+local lastTrigger = 0 -- Inicjalizacja delay'a triggerbota
+
 RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1, function()
     if not ScriptLoaded then return end
 
@@ -1526,6 +1539,7 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
 
     local closestTarget = nil
     local shortestDist = math.huge
+    local targetPhysicalDist = math.huge -- [NOWE] Zmienna do trzymania dystansu fizycznego
     
     if config.toggles.aim_enabled and isAiming then
         for _, player in pairs(Players:GetPlayers()) do
@@ -1552,6 +1566,11 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                                 if not config.toggles.aim_wallCheck or IsVisible(aimPart) then
                                     shortestDist = dist
                                     closestTarget = targetPos
+                                    
+                                    -- [NOWE] Zapisanie fizycznego dystansu do gracza
+                                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                        targetPhysicalDist = (LocalPlayer.Character.HumanoidRootPart.Position - aimPart.Position).Magnitude
+                                    end
                                 end
                             end
                         end
@@ -1561,6 +1580,12 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
         end
         if closestTarget then
             local smooth = config.sliders.aim_smooth
+            
+            -- [NOWE] LOGIKA AUTO SNAP Z BLISKA
+            if config.toggles.aim_autoSnapClose and targetPhysicalDist <= config.sliders.aim_snapDistance then
+                smooth = 1 -- 1 = Natychmiastowe namierzenie
+            end
+            
             if config.selectors.aim_method == 1 and mousemoverel then
                 local pos = Camera:WorldToScreenPoint(closestTarget)
                 local finalX = pos.X + config.sliders.aim_offsetX
@@ -1568,6 +1593,34 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                 mousemoverel((finalX - mouseLoc.X) / smooth, (finalY - mouseLoc.Y) / smooth)
             else 
                 Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, closestTarget), 1 / smooth) 
+            end
+        end
+    end
+
+    -- [NOWE] LOGIKA TRIGGERBOTA
+    if config.toggles.triggerbot then
+        local target = Mouse.Target
+        if target and target.Parent then
+            local player = Players:GetPlayerFromCharacter(target.Parent) or Players:GetPlayerFromCharacter(target.Parent.Parent)
+            if player and player ~= LocalPlayer then
+                local hp = GetHealth(player)
+                local isEnemy = not config.teamCheck or player.Team ~= LocalPlayer.Team
+                local notWhitelisted = not config.whitelist[player.Name]
+                
+                if hp > 0 and isEnemy and notWhitelisted then
+                    local passWallCheck = true
+                    if config.toggles.trigger_wallCheck then
+                        local aimPart = GetAimPart(player.Character)
+                        if aimPart then passWallCheck = IsVisible(aimPart) end
+                    end
+                    
+                    if passWallCheck then
+                        if tick() - lastTrigger >= (config.sliders.trigger_delay / 1000) then
+                            if mouse1click then mouse1click() end
+                            lastTrigger = tick()
+                        end
+                    end
+                end
             end
         end
     end
