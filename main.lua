@@ -2081,10 +2081,213 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                     end
                 end)
             end
+          local t_Thick = config.sliders.boxThickness
+    
+    local function HidePlayerESP_Safe(esp, player)
+        if esp.TopLeft1 then
+            esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+            esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+            esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+            esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+            esp.HealthOutline.Visible = false
+            esp.HealthBar.Visible = false esp.Name.Visible = false esp.Distance.Visible = false 
+            esp.Tracer.Visible = false esp.HeadDot.Visible = false esp.HealthText.Visible = false
+            esp.Weapon.Visible = false
+            if esp.OffscreenArrow then esp.OffscreenArrow.Visible = false end
+            if esp.SkeletonLines then
+                for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
+            end
+        end
+        local hl = HighlightInstances[player]
+        if hl then hl.Enabled = false end
+    end
+
+    local function ProcessPlayerESP_Safe(player, esp, isValidTarget, onScreen, pos, root, head, dist, hp, maxHp, char, t_Thick, screenCenter, screenBottom, mouseLoc)
+        if not isValidTarget then
+            HidePlayerESP_Safe(esp, player)
+            return
+        end
+
+        local hl = HighlightInstances[player]
+        if hl then
+            if config.toggles.chams and dist <= config.sliders.esp_distance then
+                hl.Adornee = char
+                hl.FillColor = config.colors.chams_fill
+                hl.OutlineColor = config.colors.chams_outline
+                hl.Enabled = true
+            else
+                hl.Enabled = false
+            end
+        end
+
+        if not onScreen and config.toggles.offscreen_arrows and dist <= config.sliders.esp_distance then
+            local targetVec = (root.Position - Camera.CFrame.Position).Unit
+            local camYRot = math.atan2(Camera.CFrame.LookVector.X, Camera.CFrame.LookVector.Z)
+            local targYRot = math.atan2(targetVec.X, targetVec.Z)
+            local finalAngle = camYRot - targYRot
+            
+            local radius = config.sliders.arrow_radius
+            local size = config.sliders.arrow_size
+            
+            local cX = screenCenter.X + math.sin(finalAngle) * radius
+            local cY = screenCenter.Y - math.cos(finalAngle) * radius
+            
+            if esp.OffscreenArrow then
+                esp.OffscreenArrow.PointA = Vector2.new(cX + math.sin(finalAngle) * size, cY - math.cos(finalAngle) * size)
+                esp.OffscreenArrow.PointB = Vector2.new(cX + math.sin(finalAngle + 2.5) * (size*0.8), cY - math.cos(finalAngle + 2.5) * (size*0.8))
+                esp.OffscreenArrow.PointC = Vector2.new(cX + math.sin(finalAngle - 2.5) * (size*0.8), cY - math.cos(finalAngle - 2.5) * (size*0.8))
+                esp.OffscreenArrow.Visible = true
+            end
+        else
+            if esp.OffscreenArrow then esp.OffscreenArrow.Visible = false end
+        end
+
+        if onScreen and pos.Z > 0 and dist <= config.sliders.esp_distance then
+            local topPos = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 3.2, 0))
+            local botPos = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3.5, 0))
+            local headPos = Camera:WorldToViewportPoint(head.Position)
+            
+            local boxH = botPos.Y - topPos.Y
+            local boxW = boxH / 1.8
+            local boxX = pos.X - (boxW / 2)
+            local boxY = topPos.Y
+
+            if config.toggles.boxes then
+                local length = math.max(boxW / 4, 3)
+                local t2 = t_Thick
+                local clr = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
+                
+                esp.TopLeft1.Thickness = t2 esp.TopLeft1.Color = clr
+                esp.TopLeft1.From = Vector2.new(boxX, boxY) esp.TopLeft1.To = Vector2.new(boxX + length, boxY)
+                esp.TopLeft2.Thickness = t2 esp.TopLeft2.Color = clr
+                esp.TopLeft2.From = Vector2.new(boxX, boxY) esp.TopLeft2.To = Vector2.new(boxX, boxY + length)
+                
+                esp.TopRight1.Thickness = t2 esp.TopRight1.Color = clr
+                esp.TopRight1.From = Vector2.new(boxX + boxW, boxY) esp.TopRight1.To = Vector2.new(boxX + boxW - length, boxY)
+                esp.TopRight2.Thickness = t2 esp.TopRight2.Color = clr
+                esp.TopRight2.From = Vector2.new(boxX + boxW, boxY) esp.TopRight2.To = Vector2.new(boxX + boxW, boxY + length)
+                
+                esp.BottomLeft1.Thickness = t2 esp.BottomLeft1.Color = clr
+                esp.BottomLeft1.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft1.To = Vector2.new(boxX + length, boxY + boxH)
+                esp.BottomLeft2.Thickness = t2 esp.BottomLeft2.Color = clr
+                esp.BottomLeft2.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft2.To = Vector2.new(boxX, boxY + boxH - length)
+                
+                esp.BottomRight1.Thickness = t2 esp.BottomRight1.Color = clr
+                esp.BottomRight1.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight1.To = Vector2.new(boxX + boxW - length, boxY + boxH)
+                esp.BottomRight2.Thickness = t2 esp.BottomRight2.Color = clr
+                esp.BottomRight2.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight2.To = Vector2.new(boxX + boxW, boxY + boxH - length)
+                
+                esp.TopLeft1.Visible = true esp.TopLeft2.Visible = true
+                esp.TopRight1.Visible = true esp.TopRight2.Visible = true
+                esp.BottomLeft1.Visible = true esp.BottomLeft2.Visible = true
+                esp.BottomRight1.Visible = true esp.BottomRight2.Visible = true
+            else 
+                esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+            end
+
+            if config.toggles.head_dots then
+                esp.HeadDot.Position = Vector2.new(headPos.X, headPos.Y)
+                esp.HeadDot.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
+                esp.HeadDot.Visible = true
+            else esp.HeadDot.Visible = false end
+
+            if config.toggles.healthbars then
+                local hpPct = math.clamp(hp / maxHp, 0, 1)
+                local barH = boxH * hpPct
+                esp.HealthOutline.Size, esp.HealthOutline.Position = Vector2.new(4, boxH + 2), Vector2.new(boxX - 7, boxY - 1)
+                esp.HealthBar.Size, esp.HealthBar.Position = Vector2.new(2, barH), Vector2.new(boxX - 6, boxY + (boxH - barH))
+                esp.HealthBar.Color = Color3.fromRGB(255 - (hpPct * 255), hpPct * 255, 30)
+                esp.HealthOutline.Visible, esp.HealthBar.Visible = true, true
+                
+                if config.toggles.healthtext and hp < maxHp then
+                    esp.HealthText.Text = tostring(math.floor(hp))
+                    esp.HealthText.Position = Vector2.new(boxX - 18, boxY + (boxH - barH) - 6)
+                    esp.HealthText.Visible = true
+                else esp.HealthText.Visible = false end
+            else esp.HealthOutline.Visible, esp.HealthBar.Visible, esp.HealthText.Visible = false, false, false end
+
+            if config.toggles.names then
+                esp.Name.Text, esp.Name.Position = string.upper(player.Name) .. (config.whitelist[player.Name] and " [W]" or ""), Vector2.new(pos.X, boxY - 18)
+                esp.Name.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or Color3.new(1,1,1)
+                esp.Name.Visible = true
+            else esp.Name.Visible = false end
+            
+            local bottomY = boxY + boxH + 3
+            if config.toggles.distances then
+                esp.Distance.Text, esp.Distance.Position = "[" .. math.floor(dist) .. "m]", Vector2.new(pos.X, bottomY)
+                esp.Distance.Visible = true
+                bottomY = bottomY + 14
+            else esp.Distance.Visible = false end
+            
+            if config.toggles.weapons then
+                local tool = char:FindFirstChildOfClass("Tool")
+                if tool then
+                    esp.Weapon.Text, esp.Weapon.Position = "[" .. string.upper(tool.Name) .. "]", Vector2.new(pos.X, bottomY)
+                    esp.Weapon.Visible = true
+                else
+                    esp.Weapon.Visible = false
+                end
+            else esp.Weapon.Visible = false end
+            
+            if config.toggles.tracers then
+                esp.Tracer.From = screenBottom
+                if config.selectors.tracer_origin == 2 then esp.Tracer.From = screenCenter elseif config.selectors.tracer_origin == 3 then esp.Tracer.From = mouseLoc end
+                esp.Tracer.To = Vector2.new(pos.X, botPos.Y)
+                esp.Tracer.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
+                esp.Tracer.Visible = true
+            else esp.Tracer.Visible = false end
+
+            if config.toggles.skeletons and esp.SkeletonLines then
+                local parts = {
+                    {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
+                    {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
+                    {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
+                    {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
+                    {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
+                }
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.RigType == Enum.HumanoidRigType.R6 then
+                    parts = {
+                        {"Head", "Torso"},
+                        {"Torso", "Left Arm"}, {"Torso", "Right Arm"},
+                        {"Torso", "Left Leg"}, {"Torso", "Right Leg"}
+                    }
+                end
+                
+                local lIndex = 1
+                for _, pair in ipairs(parts) do
+                    local p1 = char:FindFirstChild(pair[1])
+                    local p2 = char:FindFirstChild(pair[2])
+                    if p1 and p2 then
+                        local pos1, on1 = Camera:WorldToViewportPoint(p1.Position)
+                        local pos2, on2 = Camera:WorldToViewportPoint(p2.Position)
+                        if (on1 or on2) and esp.SkeletonLines[lIndex] then
+                            esp.SkeletonLines[lIndex].From = Vector2.new(pos1.X, pos1.Y)
+                            esp.SkeletonLines[lIndex].To = Vector2.new(pos2.X, pos2.Y)
+                            esp.SkeletonLines[lIndex].Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or ESP_COLORS.Skeleton
+                            esp.SkeletonLines[lIndex].Visible = true
+                            lIndex = lIndex + 1
+                        end
+                    end
+                end
+                for i = lIndex, 15 do 
+                    if esp.SkeletonLines[i] then esp.SkeletonLines[i].Visible = false end
+                end
+            else
+                if esp.SkeletonLines then
+                    for i = 1, 15 do 
+                        if esp.SkeletonLines[i] then esp.SkeletonLines[i].Visible = false end
+                    end
+                end
+            end
+        else
+            HidePlayerESP_Safe(esp, player)
         end
     end
 
-    local t_Thick = config.sliders.boxThickness
     for player, esp in pairs(ESP_Data) do
         local isValidTarget = false
         local onScreen = false
@@ -2106,224 +2309,7 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
             end
         end
 
-        if isValidTarget then
-            if HighlightInstances[player] then
-                if config.toggles.chams and dist <= config.sliders.esp_distance then
-                    local hl = HighlightInstances[player]
-                    if hl then
-                        hl.Adornee = char
-                        hl.FillColor = config.colors.chams_fill
-                        hl.OutlineColor = config.colors.chams_outline
-                        hl.Enabled = true
-                    end
-                else
-                    local hl = HighlightInstances[player]
-                    if hl then hl.Enabled = false end
-                end
-            end
-
-            if not onScreen and config.toggles.offscreen_arrows and dist <= config.sliders.esp_distance then
-                local targetVec = (root.Position - Camera.CFrame.Position).Unit
-                local camYRot = math.atan2(Camera.CFrame.LookVector.X, Camera.CFrame.LookVector.Z)
-                local targYRot = math.atan2(targetVec.X, targetVec.Z)
-                local finalAngle = camYRot - targYRot
-                
-                local radius = config.sliders.arrow_radius
-                local size = config.sliders.arrow_size
-                
-                local cX = screenCenter.X + math.sin(finalAngle) * radius
-                local cY = screenCenter.Y - math.cos(finalAngle) * radius
-                
-                if esp.OffscreenArrow then
-                    esp.OffscreenArrow.PointA = Vector2.new(cX + math.sin(finalAngle) * size, cY - math.cos(finalAngle) * size)
-                    esp.OffscreenArrow.PointB = Vector2.new(cX + math.sin(finalAngle + 2.5) * (size*0.8), cY - math.cos(finalAngle + 2.5) * (size*0.8))
-                    esp.OffscreenArrow.PointC = Vector2.new(cX + math.sin(finalAngle - 2.5) * (size*0.8), cY - math.cos(finalAngle - 2.5) * (size*0.8))
-                    esp.OffscreenArrow.Visible = true
-                end
-            else
-                if esp.OffscreenArrow then esp.OffscreenArrow.Visible = false end
-            end
-
-            if onScreen and pos.Z > 0 and dist <= config.sliders.esp_distance then
-                local topPos = Camera:WorldToViewportPoint(root.Position + Vector3.new(0, 3.2, 0))
-                local botPos = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3.5, 0))
-                local headPos = Camera:WorldToViewportPoint(head.Position)
-                
-                local boxH = botPos.Y - topPos.Y
-                local boxW = boxH / 1.8
-                local boxX = pos.X - (boxW / 2)
-                local boxY = topPos.Y
-
-                if config.toggles.boxes then
-                    local length = math.max(boxW / 4, 3)
-                    local t2 = t_Thick
-                    local clr = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
-                    
-                    esp.TopLeft1.Thickness = t2 esp.TopLeft1.Color = clr
-                    esp.TopLeft1.From = Vector2.new(boxX, boxY) esp.TopLeft1.To = Vector2.new(boxX + length, boxY)
-                    esp.TopLeft2.Thickness = t2 esp.TopLeft2.Color = clr
-                    esp.TopLeft2.From = Vector2.new(boxX, boxY) esp.TopLeft2.To = Vector2.new(boxX, boxY + length)
-                    
-                    esp.TopRight1.Thickness = t2 esp.TopRight1.Color = clr
-                    esp.TopRight1.From = Vector2.new(boxX + boxW, boxY) esp.TopRight1.To = Vector2.new(boxX + boxW - length, boxY)
-                    esp.TopRight2.Thickness = t2 esp.TopRight2.Color = clr
-                    esp.TopRight2.From = Vector2.new(boxX + boxW, boxY) esp.TopRight2.To = Vector2.new(boxX + boxW, boxY + length)
-                    
-                    esp.BottomLeft1.Thickness = t2 esp.BottomLeft1.Color = clr
-                    esp.BottomLeft1.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft1.To = Vector2.new(boxX + length, boxY + boxH)
-                    esp.BottomLeft2.Thickness = t2 esp.BottomLeft2.Color = clr
-                    esp.BottomLeft2.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft2.To = Vector2.new(boxX, boxY + boxH - length)
-                    
-                    esp.BottomRight1.Thickness = t2 esp.BottomRight1.Color = clr
-                    esp.BottomRight1.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight1.To = Vector2.new(boxX + boxW - length, boxY + boxH)
-                    esp.BottomRight2.Thickness = t2 esp.BottomRight2.Color = clr
-                    esp.BottomRight2.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight2.To = Vector2.new(boxX + boxW, boxY + boxH - length)
-                    
-                    esp.TopLeft1.Visible = true esp.TopLeft2.Visible = true
-                    esp.TopRight1.Visible = true esp.TopRight2.Visible = true
-                    esp.BottomLeft1.Visible = true esp.BottomLeft2.Visible = true
-                    esp.BottomRight1.Visible = true esp.BottomRight2.Visible = true
-                else 
-                    esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
-                    esp.TopRight1.Visible = false esp.TopRight2.Visible = false
-                    esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
-                    esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
-                end
-
-                    if config.toggles.head_dots then
-                        esp.HeadDot.Position = Vector2.new(headPos.X, headPos.Y)
-                        esp.HeadDot.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
-                        esp.HeadDot.Visible = true
-                    else esp.HeadDot.Visible = false end
-
-                    if config.toggles.healthbars then
-                        local hpPct = math.clamp(hp / maxHp, 0, 1)
-                        local barH = boxH * hpPct
-                        esp.HealthOutline.Size, esp.HealthOutline.Position = Vector2.new(4, boxH + 2), Vector2.new(boxX - 7, boxY - 1)
-                        esp.HealthBar.Size, esp.HealthBar.Position = Vector2.new(2, barH), Vector2.new(boxX - 6, boxY + (boxH - barH))
-                        esp.HealthBar.Color = Color3.fromRGB(255 - (hpPct * 255), hpPct * 255, 30)
-                        esp.HealthOutline.Visible, esp.HealthBar.Visible = true, true
-                        
-                        if config.toggles.healthtext and hp < maxHp then
-                            esp.HealthText.Text = tostring(math.floor(hp))
-                            esp.HealthText.Position = Vector2.new(boxX - 18, boxY + (boxH - barH) - 6)
-                            esp.HealthText.Visible = true
-                        else esp.HealthText.Visible = false end
-                    else esp.HealthOutline.Visible, esp.HealthBar.Visible, esp.HealthText.Visible = false, false, false end
-
-                    if config.toggles.names then
-                        esp.Name.Text, esp.Name.Position = string.upper(player.Name) .. (config.whitelist[player.Name] and " [W]" or ""), Vector2.new(pos.X, boxY - 18)
-                        esp.Name.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or Color3.new(1,1,1)
-                        esp.Name.Visible = true
-                    else esp.Name.Visible = false end
-                    
-                    local bottomY = boxY + boxH + 3
-                    if config.toggles.distances then
-                        esp.Distance.Text, esp.Distance.Position = "[" .. math.floor(dist) .. "m]", Vector2.new(pos.X, bottomY)
-                        esp.Distance.Visible = true
-                        bottomY = bottomY + 14
-                    else esp.Distance.Visible = false end
-                    
-                    if config.toggles.weapons then
-                        local tool = char:FindFirstChildOfClass("Tool")
-                        if tool then
-                            esp.Weapon.Text, esp.Weapon.Position = "[" .. string.upper(tool.Name) .. "]", Vector2.new(pos.X, bottomY)
-                            esp.Weapon.Visible = true
-                        else
-                            esp.Weapon.Visible = false
-                        end
-                    else esp.Weapon.Visible = false end
-                    
-                    if config.toggles.tracers then
-                        esp.Tracer.From = screenBottom
-                        if config.selectors.tracer_origin == 2 then esp.Tracer.From = screenCenter elseif config.selectors.tracer_origin == 3 then esp.Tracer.From = mouseLoc end
-                        esp.Tracer.To = Vector2.new(pos.X, botPos.Y)
-                        esp.Tracer.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
-                        esp.Tracer.Visible = true
-                    else esp.Tracer.Visible = false end
-
-                    if config.toggles.skeletons and esp.SkeletonLines then
-                        local parts = {
-                            {"Head", "UpperTorso"}, {"UpperTorso", "LowerTorso"},
-                            {"UpperTorso", "LeftUpperArm"}, {"LeftUpperArm", "LeftLowerArm"}, {"LeftLowerArm", "LeftHand"},
-                            {"UpperTorso", "RightUpperArm"}, {"RightUpperArm", "RightLowerArm"}, {"RightLowerArm", "RightHand"},
-                            {"LowerTorso", "LeftUpperLeg"}, {"LeftUpperLeg", "LeftLowerLeg"}, {"LeftLowerLeg", "LeftFoot"},
-                            {"LowerTorso", "RightUpperLeg"}, {"RightUpperLeg", "RightLowerLeg"}, {"RightLowerLeg", "RightFoot"}
-                        }
-                        local hum = char:FindFirstChildOfClass("Humanoid")
-                        if hum and hum.RigType == Enum.HumanoidRigType.R6 then
-                            parts = {
-                                {"Head", "Torso"},
-                                {"Torso", "Left Arm"}, {"Torso", "Right Arm"},
-                                {"Torso", "Left Leg"}, {"Torso", "Right Leg"}
-                            }
-                        end
-                        
-                        local lIndex = 1
-                        for _, pair in ipairs(parts) do
-                            local p1 = char:FindFirstChild(pair[1])
-                            local p2 = char:FindFirstChild(pair[2])
-                            if p1 and p2 then
-                                local pos1, on1 = Camera:WorldToViewportPoint(p1.Position)
-                                local pos2, on2 = Camera:WorldToViewportPoint(p2.Position)
-                                if (on1 or on2) and esp.SkeletonLines[lIndex] then
-                                    esp.SkeletonLines[lIndex].From = Vector2.new(pos1.X, pos1.Y)
-                                    esp.SkeletonLines[lIndex].To = Vector2.new(pos2.X, pos2.Y)
-                                    esp.SkeletonLines[lIndex].Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or ESP_COLORS.Skeleton
-                                    esp.SkeletonLines[lIndex].Visible = true
-                                    lIndex = lIndex + 1
-                                end
-                            end
-                        end
-                        for i = lIndex, 15 do 
-                            if esp.SkeletonLines[i] then esp.SkeletonLines[i].Visible = false end
-                        end
-                    else
-                        if esp.SkeletonLines then
-                            for i = 1, 15 do 
-                                if esp.SkeletonLines[i] then esp.SkeletonLines[i].Visible = false end
-                            end
-                        end
-                    end
-            else
-                if esp.TopLeft1 then
-                    esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
-                    esp.TopRight1.Visible = false esp.TopRight2.Visible = false
-                    esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
-                    esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
-                    esp.HealthOutline.Visible = false
-                    esp.HealthBar.Visible = false esp.Name.Visible = false esp.Distance.Visible = false 
-                    esp.Tracer.Visible = false esp.HeadDot.Visible = false esp.HealthText.Visible = false
-                    esp.Weapon.Visible = false
-                    if esp.SkeletonLines then
-                        for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
-                    end
-                end
-            end
-        else
-            if esp.TopLeft1 then
-                esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
-                esp.TopRight1.Visible = false esp.TopRight2.Visible = false
-                esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
-                esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
-                esp.HealthOutline.Visible = false
-                esp.HealthBar.Visible = false
-                esp.HealthText.Visible = false
-                esp.Name.Visible = false
-                esp.Distance.Visible = false
-                esp.Weapon.Visible = false
-                esp.Tracer.Visible = false
-                esp.HeadDot.Visible = false
-                esp.ViewTracer.Visible = false
-                esp.OffscreenArrow.Visible = false
-                if esp.SkeletonLines then
-                    for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
-                end
-            end
-            if HighlightInstances[player] then 
-                HighlightInstances[player].Enabled = false 
-            end
-        end
+        pcall(ProcessPlayerESP_Safe, player, esp, isValidTarget, onScreen, pos, root, head, dist, hp, maxHp, char, t_Thick, screenCenter, screenBottom, mouseLoc)
     end
 end)
 
