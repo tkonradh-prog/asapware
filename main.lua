@@ -2109,14 +2109,16 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
         if isValidTarget then
             if HighlightInstances[player] then
                 if config.toggles.chams and dist <= config.sliders.esp_distance then
-                    pcall(function()
-                        HighlightInstances[player].Adornee = char
-                        HighlightInstances[player].FillColor = config.colors.chams_fill
-                        HighlightInstances[player].OutlineColor = config.colors.chams_outline
-                        HighlightInstances[player].Enabled = true
-                    end)
+                    local hl = HighlightInstances[player]
+                    if hl then
+                        hl.Adornee = char
+                        hl.FillColor = config.colors.chams_fill
+                        hl.OutlineColor = config.colors.chams_outline
+                        hl.Enabled = true
+                    end
                 else
-                    pcall(function() HighlightInstances[player].Enabled = false end)
+                    local hl = HighlightInstances[player]
+                    if hl then hl.Enabled = false end
                 end
             end
 
@@ -2132,14 +2134,14 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                 local cX = screenCenter.X + math.sin(finalAngle) * radius
                 local cY = screenCenter.Y - math.cos(finalAngle) * radius
                 
-                pcall(function()
+                if esp.OffscreenArrow then
                     esp.OffscreenArrow.PointA = Vector2.new(cX + math.sin(finalAngle) * size, cY - math.cos(finalAngle) * size)
                     esp.OffscreenArrow.PointB = Vector2.new(cX + math.sin(finalAngle + 2.5) * (size*0.8), cY - math.cos(finalAngle + 2.5) * (size*0.8))
                     esp.OffscreenArrow.PointC = Vector2.new(cX + math.sin(finalAngle - 2.5) * (size*0.8), cY - math.cos(finalAngle - 2.5) * (size*0.8))
                     esp.OffscreenArrow.Visible = true
-                end)
+                end
             else
-                pcall(function() esp.OffscreenArrow.Visible = false end)
+                if esp.OffscreenArrow then esp.OffscreenArrow.Visible = false end
             end
 
             if onScreen and pos.Z > 0 and dist <= config.sliders.esp_distance then
@@ -2152,42 +2154,41 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                 local boxX = pos.X - (boxW / 2)
                 local boxY = topPos.Y
 
-                pcall(function()
-                    if config.toggles.boxes then
-                        local length = math.max(boxW / 4, 3)
-                        local t2 = t_Thick
-                        local clr = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
-                        
-                        esp.TopLeft1.Thickness = t2 esp.TopLeft1.Color = clr
-                        esp.TopLeft1.From = Vector2.new(boxX, boxY) esp.TopLeft1.To = Vector2.new(boxX + length, boxY)
-                        esp.TopLeft2.Thickness = t2 esp.TopLeft2.Color = clr
-                        esp.TopLeft2.From = Vector2.new(boxX, boxY) esp.TopLeft2.To = Vector2.new(boxX, boxY + length)
-                        
-                        esp.TopRight1.Thickness = t2 esp.TopRight1.Color = clr
-                        esp.TopRight1.From = Vector2.new(boxX + boxW, boxY) esp.TopRight1.To = Vector2.new(boxX + boxW - length, boxY)
-                        esp.TopRight2.Thickness = t2 esp.TopRight2.Color = clr
-                        esp.TopRight2.From = Vector2.new(boxX + boxW, boxY) esp.TopRight2.To = Vector2.new(boxX + boxW, boxY + length)
-                        
-                        esp.BottomLeft1.Thickness = t2 esp.BottomLeft1.Color = clr
-                        esp.BottomLeft1.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft1.To = Vector2.new(boxX + length, boxY + boxH)
-                        esp.BottomLeft2.Thickness = t2 esp.BottomLeft2.Color = clr
-                        esp.BottomLeft2.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft2.To = Vector2.new(boxX, boxY + boxH - length)
-                        
-                        esp.BottomRight1.Thickness = t2 esp.BottomRight1.Color = clr
-                        esp.BottomRight1.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight1.To = Vector2.new(boxX + boxW - length, boxY + boxH)
-                        esp.BottomRight2.Thickness = t2 esp.BottomRight2.Color = clr
-                        esp.BottomRight2.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight2.To = Vector2.new(boxX + boxW, boxY + boxH - length)
-                        
-                        esp.TopLeft1.Visible = true esp.TopLeft2.Visible = true
-                        esp.TopRight1.Visible = true esp.TopRight2.Visible = true
-                        esp.BottomLeft1.Visible = true esp.BottomLeft2.Visible = true
-                        esp.BottomRight1.Visible = true esp.BottomRight2.Visible = true
-                    else 
-                        esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
-                        esp.TopRight1.Visible = false esp.TopRight2.Visible = false
-                        esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
-                        esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
-                    end
+                if config.toggles.boxes then
+                    local length = math.max(boxW / 4, 3)
+                    local t2 = t_Thick
+                    local clr = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
+                    
+                    esp.TopLeft1.Thickness = t2 esp.TopLeft1.Color = clr
+                    esp.TopLeft1.From = Vector2.new(boxX, boxY) esp.TopLeft1.To = Vector2.new(boxX + length, boxY)
+                    esp.TopLeft2.Thickness = t2 esp.TopLeft2.Color = clr
+                    esp.TopLeft2.From = Vector2.new(boxX, boxY) esp.TopLeft2.To = Vector2.new(boxX, boxY + length)
+                    
+                    esp.TopRight1.Thickness = t2 esp.TopRight1.Color = clr
+                    esp.TopRight1.From = Vector2.new(boxX + boxW, boxY) esp.TopRight1.To = Vector2.new(boxX + boxW - length, boxY)
+                    esp.TopRight2.Thickness = t2 esp.TopRight2.Color = clr
+                    esp.TopRight2.From = Vector2.new(boxX + boxW, boxY) esp.TopRight2.To = Vector2.new(boxX + boxW, boxY + length)
+                    
+                    esp.BottomLeft1.Thickness = t2 esp.BottomLeft1.Color = clr
+                    esp.BottomLeft1.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft1.To = Vector2.new(boxX + length, boxY + boxH)
+                    esp.BottomLeft2.Thickness = t2 esp.BottomLeft2.Color = clr
+                    esp.BottomLeft2.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft2.To = Vector2.new(boxX, boxY + boxH - length)
+                    
+                    esp.BottomRight1.Thickness = t2 esp.BottomRight1.Color = clr
+                    esp.BottomRight1.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight1.To = Vector2.new(boxX + boxW - length, boxY + boxH)
+                    esp.BottomRight2.Thickness = t2 esp.BottomRight2.Color = clr
+                    esp.BottomRight2.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight2.To = Vector2.new(boxX + boxW, boxY + boxH - length)
+                    
+                    esp.TopLeft1.Visible = true esp.TopLeft2.Visible = true
+                    esp.TopRight1.Visible = true esp.TopRight2.Visible = true
+                    esp.BottomLeft1.Visible = true esp.BottomLeft2.Visible = true
+                    esp.BottomRight1.Visible = true esp.BottomRight2.Visible = true
+                else 
+                    esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                    esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                    esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                    esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+                end
 
                     if config.toggles.head_dots then
                         esp.HeadDot.Position = Vector2.new(headPos.X, headPos.Y)
@@ -2284,28 +2285,27 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                             end
                         end
                     end
-                end)
             else
-                pcall(function()
-                        esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
-                        esp.TopRight1.Visible = false esp.TopRight2.Visible = false
-                        esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
-                        esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
-                        esp.HealthOutline.Visible = false
+                if esp.TopLeft1 then
+                    esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                    esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                    esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                    esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+                    esp.HealthOutline.Visible = false
                     esp.HealthBar.Visible = false esp.Name.Visible = false esp.Distance.Visible = false 
                     esp.Tracer.Visible = false esp.HeadDot.Visible = false esp.HealthText.Visible = false
                     esp.Weapon.Visible = false
                     if esp.SkeletonLines then
                         for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
                     end
-                end)
+                end
             end
         else
-            pcall(function()
-                        esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
-                        esp.TopRight1.Visible = false esp.TopRight2.Visible = false
-                        esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
-                        esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+            if esp.TopLeft1 then
+                esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
                 esp.HealthOutline.Visible = false
                 esp.HealthBar.Visible = false
                 esp.HealthText.Visible = false
@@ -2319,9 +2319,9 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                 if esp.SkeletonLines then
                     for _, l in ipairs(esp.SkeletonLines) do l.Visible = false end
                 end
-            end)
+            end
             if HighlightInstances[player] then 
-                pcall(function() HighlightInstances[player].Enabled = false end) 
+                HighlightInstances[player].Enabled = false 
             end
         end
     end
