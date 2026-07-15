@@ -42,7 +42,8 @@ local config = {
         aim_enabled = false, aim_showFov = true, aim_crosshair = true, 
         aim_wallCheck = false, aim_predict = true, aim_autoSnapClose = false,
         triggerbot = false, trigger_wallCheck = true,
-        rainbow_ui = false, bhop = false, fly = false, noclip = false, godmode = false, watermark = true
+        rainbow_ui = false, bhop = false, fly = false, noclip = false, godmode = false, watermark = true,
+        walkspeed_enabled = false, jumppower_enabled = false, inf_jump = false, spinbot = false
     },
     sliders = {
         aim_distance = 1500, aim_fov = 100, aim_smooth = 1, aim_offsetX = 0, aim_offsetY = 59, aim_pred_amt = 10,
@@ -50,7 +51,8 @@ local config = {
         trigger_delay = 0,
         esp_distance = 1500, boxThickness = 1, arrow_radius = 200, arrow_size = 15,
         custom_time = 12, custom_fov = 90, brightness = 20, exposure = 0, fog_start = 0, fog_end = 1000,
-        fly_speed = 50, tp_speed = 150
+        fly_speed = 50, tp_speed = 150,
+        walkspeed_val = 100, jumppower_val = 100, spinbot_speed = 20
     },
     colors = {
         enemy_esp = Color3.fromRGB(255, 60, 60),
@@ -62,7 +64,7 @@ local config = {
         fog_color = Color3.fromRGB(200, 200, 200)
     },
     selectors = { aim_part = 1, aim_method = 1, tracer_origin = 1, fly_method = 1 },
-    keybinds = { aimbot = Enum.UserInputType.MouseButton2, fly = Enum.KeyCode.F, menu = Enum.KeyCode.Insert },
+    keybinds = { aimbot = Enum.UserInputType.MouseButton2, fly = nil, menu = Enum.KeyCode.Insert },
     selectedPlayer = nil
 }
 
@@ -142,16 +144,16 @@ end
 pcall(function() ScreenGui.Parent = TargetGui end)
 
 local Theme = {
-    MainBg = Color3.fromRGB(6, 6, 9),       -- Ultra dark
-    SidebarBg = Color3.fromRGB(9, 9, 13),
-    CardBg = Color3.fromRGB(13, 13, 18),
-    ItemBg = Color3.fromRGB(18, 18, 24),
-    ItemHover = Color3.fromRGB(24, 24, 32),
-    Border = Color3.fromRGB(38, 38, 48),
-    Text = Color3.fromRGB(250, 250, 250),
-    SubText = Color3.fromRGB(135, 140, 150),
-    ToggleOff = Color3.fromRGB(36, 36, 44),
-    Danger = Color3.fromRGB(255, 60, 60),
+    MainBg = Color3.fromRGB(15, 15, 20),
+    SidebarBg = Color3.fromRGB(10, 10, 14),
+    CardBg = Color3.fromRGB(22, 22, 28),
+    ItemBg = Color3.fromRGB(28, 28, 35),
+    ItemHover = Color3.fromRGB(38, 38, 45),
+    Border = Color3.fromRGB(45, 45, 55),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(170, 175, 185),
+    ToggleOff = Color3.fromRGB(35, 35, 45),
+    Danger = Color3.fromRGB(255, 75, 75),
     Font = Enum.Font.GothamMedium,
     FontBold = Enum.Font.GothamBold,
     FontBlack = Enum.Font.GothamBlack,
@@ -167,7 +169,7 @@ end
 -- ================== -- STRUKTURA GŁÓWNA -- ==================
 
 local DragContainer = Instance.new("CanvasGroup", ScreenGui)
-DragContainer.Size = UDim2.new(0, 1050, 0, 700)
+DragContainer.Size = UDim2.new(0, 1000, 0, 650)
 DragContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
 DragContainer.AnchorPoint = Vector2.new(0.5, 0.5)
 DragContainer.BackgroundColor3 = Theme.MainBg
@@ -178,9 +180,19 @@ local MainStroke = Instance.new("UIStroke", DragContainer)
 MainStroke.Color = Theme.Border
 MainStroke.Thickness = 1
 
+local DropShadow = Instance.new("ImageLabel", DragContainer)
+DropShadow.Size = UDim2.new(1, 120, 1, 120)
+DropShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+DropShadow.AnchorPoint = Vector2.new(0.5, 0.5)
+DropShadow.BackgroundTransparency = 1
+DropShadow.Image = "rbxassetid://6015897843"
+DropShadow.ImageColor3 = Color3.new(0, 0, 0)
+DropShadow.ImageTransparency = 0.3
+DropShadow.ZIndex = -1
+
 -- Gradient Accent Line na górze
 local TopAccentLine = Instance.new("Frame", DragContainer)
-TopAccentLine.Size = UDim2.new(1, 0, 0, 2)
+TopAccentLine.Size = UDim2.new(1, 0, 0, 3)
 TopAccentLine.Position = UDim2.new(0, 0, 0, 0)
 TopAccentLine.BackgroundColor3 = Color3.new(1,1,1)
 TopAccentLine.BorderSizePixel = 0
@@ -775,7 +787,7 @@ local function CreateSlider(parent, text, tbl, key, min, max)
     Instance.new("UICorner", valBg).CornerRadius = UDim.new(0, 4)
     Instance.new("UIStroke", valBg).Color = Theme.Border
 
-    local valLbl = Instance.new("TextLabel", valBg)
+    local valLbl = Instance.new("TextBox", valBg)
     valLbl.Size = UDim2.new(1, 0, 1, 0)
     valLbl.BackgroundTransparency = 1
     valLbl.Text = tostring(tbl[key])
@@ -783,6 +795,21 @@ local function CreateSlider(parent, text, tbl, key, min, max)
     valLbl.Font = Theme.FontCode
     valLbl.TextSize = 10
     valLbl.TextXAlignment = Enum.TextXAlignment.Center
+    valLbl.ClearTextOnFocus = false
+
+    valLbl.FocusLost:Connect(function()
+        local num = tonumber(valLbl.Text)
+        if num then
+            num = math.clamp(math.floor(num), min, max)
+            tbl[key] = num
+            valLbl.Text = tostring(num)
+            local pct = (num - min) / (max - min)
+            Tween(fill, {Size = UDim2.new(pct, 0, 1, 0)}, 0.1)
+            UpdatePreviewEvent:Fire()
+        else
+            valLbl.Text = tostring(tbl[key])
+        end
+    end)
 
     local track = Instance.new("TextButton", frame)
     track.Size = UDim2.new(1, 0, 0, 8)
@@ -826,20 +853,20 @@ local function CreateSlider(parent, text, tbl, key, min, max)
     end
 
     track.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
             dragging = true 
             Tween(knob, {Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(1, -9, 0.5, -9)}, 0.1)
             update(i) 
         end
     end)
     UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then 
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then 
             dragging = false 
             Tween(knob, {Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -7, 0.5, -7)}, 0.1)
         end
     end)
     UserInputService.InputChanged:Connect(function(i)
-        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then update(i) end
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then update(i) end
     end)
 end
 
@@ -1477,7 +1504,6 @@ CreateSlider(aSec2, "Aim Offset Y", config.sliders, "aim_offsetY", -100, 100)
 CreateToggle(aSec2, "Auto-Snap Close Range", config.toggles, "aim_autoSnapClose")
 CreateSlider(aSec2, "Snap Distance (Studs)", config.sliders, "aim_snapDistance", 5, 50)
 
-
 -- ZAKŁADKA VISUALS (ESP)
 local vSecPreview = CreateSection(colsVis.Left, "2D ESP Preview")
 Build2DPreview(vSecPreview)
@@ -1654,6 +1680,15 @@ CreateKeybind(mSec2, "Fly Bind", config.keybinds, "fly")
 CreateSlider(mSec2, "Fly Speed", config.sliders, "fly_speed", 10, 150)
 CreateToggle(mSec2, "Noclip", config.toggles, "noclip")
 
+local mSec3 = CreateSection(colsMisc.Right, "Character Mods")
+CreateToggle(mSec3, "Custom WalkSpeed", config.toggles, "walkspeed_enabled")
+CreateSlider(mSec3, "WalkSpeed", config.sliders, "walkspeed_val", 16, 250)
+CreateToggle(mSec3, "Custom JumpPower", config.toggles, "jumppower_enabled")
+CreateSlider(mSec3, "JumpPower", config.sliders, "jumppower_val", 50, 300)
+CreateToggle(mSec3, "Infinite Jump", config.toggles, "inf_jump")
+CreateToggle(mSec3, "Spinbot", config.toggles, "spinbot")
+CreateSlider(mSec3, "Spin Speed", config.sliders, "spinbot_speed", 1, 50)
+
 -- ZAKŁADKA SETTINGS
 local sSec1 = CreateSection(colsSet.Left, "Interface")
 CreateKeybind(sSec1, "Menu Bind", config.keybinds, "menu")
@@ -1681,13 +1716,13 @@ local function ToggleMenu()
     if menuOpen then
         DragContainer.Visible = true
         DragContainer.Interactable = true
-        Tween(UIScale, {Scale = 1}, 0.4, Enum.EasingStyle.Back)
-        Tween(DragContainer, {GroupTransparency = 0}, 0.25)
+        Tween(UIScale, {Scale = 1}, 0.15, Enum.EasingStyle.Sine)
+        Tween(DragContainer, {GroupTransparency = 0}, 0.15)
     else
         DragContainer.Interactable = false
-        Tween(UIScale, {Scale = 0.9}, 0.3, Enum.EasingStyle.Quint)
-        Tween(DragContainer, {GroupTransparency = 1}, 0.25)
-        task.delay(0.3, function() 
+        Tween(UIScale, {Scale = 0.95}, 0.15, Enum.EasingStyle.Sine)
+        Tween(DragContainer, {GroupTransparency = 1}, 0.15)
+        task.delay(0.15, function() 
             if not menuOpen then 
                 DragContainer.Visible = false 
             end 
@@ -1740,9 +1775,14 @@ local function SetupESP(player)
         HighlightInstances[player] = chams
     end
     ESP_Data[player] = {
-        BoxOutline = CreateDraw("Square", {Filled = false, Color = ESP_COLORS.Outline}),
-        Box = CreateDraw("Square", {Filled = false}),
-        BoxInnerOutline = CreateDraw("Square", {Filled = false, Color = ESP_COLORS.Outline}),
+        TopLeft1 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        TopLeft2 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        TopRight1 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        TopRight2 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        BottomLeft1 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        BottomLeft2 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        BottomRight1 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
+        BottomRight2 = CreateDraw("Line", {Thickness = 1, Color = ESP_COLORS.Outline}),
         HealthOutline = CreateDraw("Square", {Filled = true, Color = ESP_COLORS.Outline}),
         HealthBar = CreateDraw("Square", {Filled = true}),
         HealthText = CreateDraw("Text", {Center = true, Outline = true, Font = 3, Size = 13, Color = Color3.fromRGB(255, 255, 255)}),
@@ -1780,6 +1820,13 @@ local NoclipConnection = RunService.Stepped:Connect(function()
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then part.CanCollide = false end
         end
+    end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if config.toggles.inf_jump and LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
@@ -1849,6 +1896,24 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
     if config.toggles.bhop and UserInputService:IsKeyDown(Enum.KeyCode.Space) and not config.toggles.fly then
         local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hum and hum.FloorMaterial ~= Enum.Material.Air then hum.Jump = true end
+    end
+    
+    if LocalPlayer.Character then
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if config.toggles.walkspeed_enabled then hum.WalkSpeed = config.sliders.walkspeed_val end
+            if config.toggles.jumppower_enabled then
+                if hum.UseJumpPower then
+                    hum.JumpPower = config.sliders.jumppower_val
+                else
+                    hum.JumpHeight = config.sliders.jumppower_val / 2
+                end
+            end
+        end
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and config.toggles.spinbot then
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(config.sliders.spinbot_speed), 0)
+        end
     end
     
     if config.toggles.fly then
@@ -2005,6 +2070,20 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
         end
     end
 
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                pcall(function()
+                    if hrp.Size.X > 3 then
+                        hrp.Size = Vector3.new(2, 2, 1)
+                        hrp.Transparency = 1
+                    end
+                end)
+            end
+        end
+    end
+
     local t_Thick = config.sliders.boxThickness
     for player, esp in pairs(ESP_Data) do
         local isValidTarget = false
@@ -2075,15 +2154,40 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
 
                 pcall(function()
                     if config.toggles.boxes then
-                        esp.BoxOutline.Thickness = t_Thick + 2
-                        esp.BoxOutline.Size, esp.BoxOutline.Position = Vector2.new(boxW, boxH), Vector2.new(boxX, boxY)
-                        esp.Box.Thickness = t_Thick
-                        esp.Box.Size, esp.Box.Position = Vector2.new(boxW, boxH), Vector2.new(boxX, boxY)
-                        esp.Box.Color = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
-                        esp.BoxInnerOutline.Thickness = 1
-                        esp.BoxInnerOutline.Size, esp.BoxInnerOutline.Position = Vector2.new(boxW - (t_Thick * 2), boxH - (t_Thick * 2)), Vector2.new(boxX + t_Thick, boxY + t_Thick)
-                        esp.BoxOutline.Visible, esp.Box.Visible, esp.BoxInnerOutline.Visible = true, true, true
-                    else esp.BoxOutline.Visible, esp.Box.Visible, esp.BoxInnerOutline.Visible = false, false, false end
+                        local length = math.max(boxW / 4, 3)
+                        local t2 = t_Thick
+                        local clr = config.whitelist[player.Name] and Color3.fromRGB(50, 255, 50) or config.colors.enemy_esp
+                        
+                        esp.TopLeft1.Thickness = t2 esp.TopLeft1.Color = clr
+                        esp.TopLeft1.From = Vector2.new(boxX, boxY) esp.TopLeft1.To = Vector2.new(boxX + length, boxY)
+                        esp.TopLeft2.Thickness = t2 esp.TopLeft2.Color = clr
+                        esp.TopLeft2.From = Vector2.new(boxX, boxY) esp.TopLeft2.To = Vector2.new(boxX, boxY + length)
+                        
+                        esp.TopRight1.Thickness = t2 esp.TopRight1.Color = clr
+                        esp.TopRight1.From = Vector2.new(boxX + boxW, boxY) esp.TopRight1.To = Vector2.new(boxX + boxW - length, boxY)
+                        esp.TopRight2.Thickness = t2 esp.TopRight2.Color = clr
+                        esp.TopRight2.From = Vector2.new(boxX + boxW, boxY) esp.TopRight2.To = Vector2.new(boxX + boxW, boxY + length)
+                        
+                        esp.BottomLeft1.Thickness = t2 esp.BottomLeft1.Color = clr
+                        esp.BottomLeft1.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft1.To = Vector2.new(boxX + length, boxY + boxH)
+                        esp.BottomLeft2.Thickness = t2 esp.BottomLeft2.Color = clr
+                        esp.BottomLeft2.From = Vector2.new(boxX, boxY + boxH) esp.BottomLeft2.To = Vector2.new(boxX, boxY + boxH - length)
+                        
+                        esp.BottomRight1.Thickness = t2 esp.BottomRight1.Color = clr
+                        esp.BottomRight1.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight1.To = Vector2.new(boxX + boxW - length, boxY + boxH)
+                        esp.BottomRight2.Thickness = t2 esp.BottomRight2.Color = clr
+                        esp.BottomRight2.From = Vector2.new(boxX + boxW, boxY + boxH) esp.BottomRight2.To = Vector2.new(boxX + boxW, boxY + boxH - length)
+                        
+                        esp.TopLeft1.Visible = true esp.TopLeft2.Visible = true
+                        esp.TopRight1.Visible = true esp.TopRight2.Visible = true
+                        esp.BottomLeft1.Visible = true esp.BottomLeft2.Visible = true
+                        esp.BottomRight1.Visible = true esp.BottomRight2.Visible = true
+                    else 
+                        esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                        esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                        esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                        esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+                    end
 
                     if config.toggles.head_dots then
                         esp.HeadDot.Position = Vector2.new(headPos.X, headPos.Y)
@@ -2183,7 +2287,11 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
                 end)
             else
                 pcall(function()
-                    esp.BoxOutline.Visible = false esp.Box.Visible = false esp.BoxInnerOutline.Visible = false esp.HealthOutline.Visible = false
+                        esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                        esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                        esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                        esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
+                        esp.HealthOutline.Visible = false
                     esp.HealthBar.Visible = false esp.Name.Visible = false esp.Distance.Visible = false 
                     esp.Tracer.Visible = false esp.HeadDot.Visible = false esp.HealthText.Visible = false
                     esp.Weapon.Visible = false
@@ -2194,9 +2302,10 @@ RunService:BindToRenderStep("AsapwareMain", Enum.RenderPriority.Camera.Value + 1
             end
         else
             pcall(function()
-                esp.BoxOutline.Visible = false
-                esp.Box.Visible = false
-                esp.BoxInnerOutline.Visible = false
+                        esp.TopLeft1.Visible = false esp.TopLeft2.Visible = false
+                        esp.TopRight1.Visible = false esp.TopRight2.Visible = false
+                        esp.BottomLeft1.Visible = false esp.BottomLeft2.Visible = false
+                        esp.BottomRight1.Visible = false esp.BottomRight2.Visible = false
                 esp.HealthOutline.Visible = false
                 esp.HealthBar.Visible = false
                 esp.HealthText.Visible = false
